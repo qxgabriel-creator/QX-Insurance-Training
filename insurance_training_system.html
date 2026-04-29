@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Insurance Training System</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client"></script>
+<style>
+:root{
+  --bg:#0c0d10;--bg2:#13141a;--bg3:#1a1c24;--bg4:#21232e;--bg5:#282b38;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.10);--border3:rgba(255,255,255,0.16);
+  --text:#ecedf5;--text2:#8f91a8;--text3:#52546a;
+  --accent:#4f7cff;--green:#2dcc7a;--green-bg:rgba(45,204,122,0.09);--green-bd:rgba(45,204,122,0.28);
+  --amber:#f5a623;--amber-bg:rgba(245,166,35,0.09);--amber-bd:rgba(245,166,35,0.28);
+  --purple:#a78bfa;--teal:#2dd4bf;--coral:#ff6b6b;--gold:#ffd166;
+  --r:8px;--rl:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;}
+
+
+/* DRIVE SYNC */
+.drive-bar{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.drive-btn{
+  display:flex;align-items:center;gap:7px;
+  padding:6px 14px;font-size:12px;font-weight:500;
+  border:1px solid var(--border2);border-radius:var(--r);
+  background:var(--bg3);color:var(--text2);
+  cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;
+}
+.drive-btn:hover{border-color:var(--border3);color:var(--text);}
+.drive-btn.connected{border-color:var(--green-bd);color:var(--green);background:var(--green-bg);}
+.drive-btn.syncing{border-color:var(--accent);color:var(--accent);background:rgba(79,124,255,.08);}
+.drive-btn.error{border-color:var(--coral);color:var(--coral);background:rgba(255,107,107,.08);}
+.drive-status-dot{width:6px;height:6px;border-radius:50%;background:var(--text3);flex-shrink:0;transition:background .3s;}
+.drive-btn.connected .drive-status-dot{background:var(--green);}
+.drive-btn.syncing .drive-status-dot{background:var(--accent);animation:pulse .8s infinite;}
+.drive-btn.error .drive-status-dot{background:var(--coral);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* SETUP MODAL */
+.setup-modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);width:92%;max-width:620px;padding:28px;max-height:90vh;overflow-y:auto;}
+.setup-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:6px;}
+.setup-sub{font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.6;}
+.setup-step{display:flex;gap:14px;margin-bottom:16px;align-items:flex-start;}
+.setup-num{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.setup-step-body{flex:1;}
+.setup-step-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.setup-step-desc{font-size:12px;color:var(--text2);line-height:1.6;}
+.setup-step-desc a{color:var(--accent);text-decoration:none;}
+.setup-step-desc a:hover{text-decoration:underline;}
+.setup-step-desc code{background:var(--bg4);padding:1px 6px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;color:var(--teal);}
+.setup-inp{width:100%;padding:9px 12px;font-size:13px;background:var(--bg);color:var(--text);border:1px solid var(--border2);border-radius:var(--r);font-family:'DM Mono',monospace;margin-top:8px;}
+.setup-inp:focus{outline:none;border-color:var(--accent);}
+.setup-inp::placeholder{color:var(--text3);}
+.setup-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end;}
+.setup-cancel{padding:8px 20px;font-size:12px;font-weight:500;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg3);color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;}
+.setup-cancel:hover{color:var(--text);}
+.setup-connect{padding:8px 22px;font-size:12px;font-weight:500;border:1px solid var(--accent);border-radius:var(--r);background:rgba(79,124,255,.15);color:var(--accent);cursor:pointer;font-family:'DM Sans',sans-serif;}
+.setup-connect:hover{background:rgba(79,124,255,.25);}
+.setup-divider{border:none;border-top:1px solid var(--border);margin:18px 0;}
+
+/* HDR */
+.hdr{background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;}
+.hdr-l{display:flex;align-items:center;gap:14px;}
+.logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#4f7cff,#7b9fff);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#fff;}
+.hdr-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:600;}
+.hdr-sub{font-size:11px;color:var(--text3);margin-top:1px;}
+.save-pill{font-size:11px;color:var(--green);display:flex;align-items:center;gap:5px;background:var(--green-bg);border:1px solid var(--green-bd);padding:4px 10px;border-radius:20px;opacity:0;transition:opacity .3s;}
+.save-pill.on{opacity:1;}
+.save-dot{width:5px;height:5px;border-radius:50%;background:var(--green);}
+
+/* UNDO TOAST */
+.undo-toast{position:fixed;top:70px;left:50%;transform:translateX(-50%) translateY(-10px);background:var(--bg2);border:1px solid var(--amber-bd);border-radius:var(--rl);padding:12px 18px;display:flex;align-items:center;gap:14px;font-size:13px;color:var(--text2);z-index:600;opacity:0;pointer-events:none;transition:all .25s;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,.5);}
+.undo-toast.on{opacity:1;pointer-events:all;transform:translateX(-50%) translateY(0);}
+.undo-progress{height:2px;background:var(--amber-bd);border-radius:2px;margin-top:8px;transition:width linear;}
+.undo-btn{padding:5px 14px;font-size:11px;font-weight:600;border:1px solid var(--amber-bd);border-radius:6px;background:var(--amber-bg);color:var(--amber);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.undo-btn:hover{background:rgba(245,166,35,0.2);}
+
+.main{max-width:980px;margin:0 auto;padding:28px 20px 80px;}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px;}
+.sc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:16px 18px;text-align:center;}
+.sc-n{font-family:'Syne',sans-serif;font-size:28px;font-weight:700;letter-spacing:-1px;}
+.sc-l{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-top:3px;}
+
+/* LEGEND */
+.legend{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:20px;font-size:12px;color:var(--text2);}
+.leg-sep{color:var(--text3);}
+.leg-item{display:inline-flex;align-items:center;gap:5px;}
+.leg-dot-n{width:7px;height:7px;border-radius:50%;}
+.leg-num{font-family:'DM Mono',monospace;font-size:10px;font-weight:600;}
+
+/* LEVEL BLOCK */
+.lvl-block{margin-bottom:10px;border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;}
+.lvl-hdr{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;user-select:none;background:var(--bg2);transition:background .15s;}
+.lvl-hdr:hover{background:var(--bg3);}
+.lvl-badge{font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;letter-spacing:.04em;font-family:'DM Mono',monospace;}
+.lvl-count{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;}
+.chev{font-size:10px;color:var(--text3);transition:transform .2s;}
+.collapsed .chev{transform:rotate(-90deg);}
+.lvl-body{border-top:1px solid var(--border);padding:14px 18px;background:var(--bg);}
+
+/* SECTION */
+.sec-wrap{margin-bottom:8px;}
+.sec-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px;margin-top:16px;}
+.sec-hdr:first-child{margin-top:0;}
+.sec-hdr-left{flex:1;display:flex;align-items:center;}
+.sec-lbl{
+  font-size:10px;font-weight:600;color:var(--text3);
+  letter-spacing:.08em;text-transform:uppercase;
+  display:inline-flex;align-items:center;gap:8px;
+  cursor:pointer;user-select:none;
+  border-bottom:1px solid transparent;padding-bottom:1px;
+  transition:color .15s,border-color .15s;
+}
+.sec-lbl:hover{color:var(--text);border-bottom-color:var(--text);}
+
+/* Edit topics button */
+.edit-topics-btn{font-size:10px;font-weight:500;padding:3px 10px;border:1px solid var(--border2);border-radius:5px;background:var(--bg3);color:var(--text3);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;flex-shrink:0;}
+.edit-topics-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+/* TOPIC ROW */
+.t-wrap{margin-bottom:6px;}
+.t-row{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:all .15s;user-select:none;}
+.t-row:hover{border-color:var(--border2);background:var(--bg3);}
+.t-row.open{border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom-color:transparent;border-color:var(--border2);background:var(--bg3);}
+.t-name{font-size:13px;font-weight:500;flex:1;color:var(--text);}
+.tog{font-size:10px;color:var(--text3);flex-shrink:0;}
+
+/* Count badges */
+.t-badges{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.t-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:20px;}
+.t-badge-note{background:rgba(45,212,191,0.12);color:var(--teal);border:1px solid rgba(45,212,191,0.3);}
+.t-badge-slide{background:rgba(167,139,250,0.12);color:var(--purple);border:1px solid rgba(167,139,250,0.3);}
+.t-badge-dot{width:5px;height:5px;border-radius:50%;}
+
+/* DETAIL */
+.detail{background:var(--bg3);border:1px solid var(--border2);border-top:none;border-bottom-left-radius:var(--r);border-bottom-right-radius:var(--r);overflow:hidden;}
+
+/* TABS */
+.dtabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);}
+.dtab{flex:1;padding:11px 16px;font-size:12px;font-weight:400;text-align:center;cursor:pointer;color:var(--text3);border:none;background:transparent;border-bottom:2px solid transparent;transition:all .15s;font-family:'DM Sans',sans-serif;letter-spacing:.02em;}
+.dtab:hover{color:var(--text2);background:var(--bg3);}
+.dtab.active{color:var(--text);font-weight:500;border-bottom-color:var(--accent);}
+.dpanel{padding:18px 20px;}
+
+/* NOTES TAB */
+.notes-html-section{margin-bottom:18px;}
+.notes-html-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.notes-html-title{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:.05em;text-transform:uppercase;display:flex;align-items:center;gap:8px;}
+.add-note-html-btn{font-size:11px;font-weight:500;padding:5px 12px;border:1px dashed var(--border2);border-radius:var(--r);background:transparent;color:var(--text3);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;}
+.add-note-html-btn:hover{border-color:var(--teal);color:var(--teal);}
+.note-html-list{display:flex;flex-direction:column;gap:6px;}
+.note-html-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);transition:border-color .15s;}
+.note-html-row:hover{border-color:var(--border3);}
+.note-html-icon{font-size:16px;flex-shrink:0;color:var(--teal);}
+.note-html-name{flex:1;font-size:12px;font-weight:500;color:var(--text2);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:text;}
+.note-html-name:focus{outline:none;color:var(--text);white-space:normal;}
+.note-html-open{padding:5px 12px;font-size:11px;font-weight:500;border:1px solid var(--border2);border-radius:5px;background:var(--bg4);color:var(--text2);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;flex-shrink:0;}
+.note-html-open:hover{border-color:var(--teal);color:var(--teal);}
+.note-html-edit{padding:5px 10px;font-size:11px;border:1px solid var(--border2);border-radius:5px;background:var(--bg4);color:var(--text3);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;flex-shrink:0;}
+.note-html-edit:hover{border-color:var(--border3);color:var(--text2);}
+.note-html-del{width:24px;height:24px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--text3);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.note-html-del:hover{border-color:var(--coral);color:var(--coral);}
+.note-html-empty{display:flex;align-items:center;gap:8px;padding:14px;font-size:12px;color:var(--text3);border:1px dashed var(--border2);border-radius:var(--r);}
+.notes-divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
+.notes-lbl{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:4px;}
+.notes-sub{font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.6;}
+textarea.rnotes{width:100%;padding:12px 14px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);border:1px solid var(--border2);border-radius:var(--r);resize:vertical;min-height:140px;line-height:1.7;display:block;transition:border-color .15s;}
+textarea.rnotes:focus{outline:none;border-color:var(--accent);}
+textarea.rnotes::placeholder{color:var(--text3);}
+.save-row{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap;}
+.save-btn{padding:7px 20px;font-size:12px;font-weight:500;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg4);color:var(--text2);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;}
+.save-btn:hover{background:var(--bg3);border-color:var(--border3);color:var(--text);}
+.save-btn.saved{color:var(--green);border-color:var(--green-bd);background:var(--green-bg);}
+.save-hint{font-size:11px;color:var(--text3);}
+
+/* SLIDES TAB */
+.slides-section{margin-bottom:20px;}
+.slides-section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.slides-section-title{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;gap:8px;}
+.slides-type-badge{font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px;font-family:'DM Mono',monospace;}
+.add-slide-btn{display:flex;align-items:center;gap:6px;padding:6px 14px;font-size:11px;font-weight:500;border:1px dashed var(--border2);border-radius:var(--r);background:transparent;color:var(--text3);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;}
+.add-slide-btn:hover{border-color:var(--accent);color:var(--accent);}
+.slide-thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;}
+.slide-thumb{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);overflow:hidden;display:flex;flex-direction:column;transition:border-color .15s;}
+.slide-thumb:hover{border-color:var(--border3);}
+.slide-thumb-preview{height:180px;background:#fff;position:relative;overflow:hidden;cursor:pointer;flex-shrink:0;}
+.slide-thumb-preview iframe{width:300%;height:300%;transform:scale(0.333);transform-origin:top left;border:none;pointer-events:none;display:block;}
+.slide-thumb-overlay{position:absolute;inset:0;background:rgba(0,0,0,0);display:flex;align-items:center;justify-content:center;transition:background .2s;}
+.slide-thumb-preview:hover .slide-thumb-overlay{background:rgba(0,0,0,0.4);}
+.slide-open-btn{background:var(--accent);color:#fff;padding:7px 16px;border-radius:6px;font-size:12px;font-weight:500;opacity:0;transform:translateY(6px);transition:all .18s;}
+.slide-thumb-preview:hover .slide-open-btn{opacity:1;transform:translateY(0);}
+.slide-thumb-footer{padding:9px 12px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--bg2);}
+.slide-thumb-name{flex:1;font-size:11px;font-weight:500;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:text;min-width:0;}
+.slide-thumb-name:focus{outline:none;color:var(--text);white-space:normal;}
+.slide-thumb-actions{display:flex;gap:4px;flex-shrink:0;}
+.sth-btn{width:26px;height:26px;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--text3);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.sth-btn:hover{border-color:var(--border3);color:var(--text2);}
+.sth-btn.del:hover{border-color:var(--coral);color:var(--coral);}
+.slides-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:28px;color:var(--text3);font-size:12px;border:1px dashed var(--border2);border-radius:var(--rl);cursor:pointer;transition:all .15s;text-align:center;}
+.slides-empty:hover{border-color:var(--accent);color:var(--accent);}
+.slides-empty-icon{font-size:26px;opacity:.35;}
+.slides-divider{border:none;border-top:1px solid var(--border);margin:20px 0;}
+
+/* PROMPTS */
+.out-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+.out-row:last-child{border-bottom:none;}
+.tick{width:24px;height:24px;border-radius:50%;border:1px solid var(--border2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--bg4);transition:all .15s;}
+.tick:hover{border-color:var(--green-bd);}
+.tick.on{background:var(--green-bg);border-color:var(--green-bd);}
+.tick svg{width:12px;height:12px;}
+.out-info{flex:1;min-width:0;}
+.out-name{font-size:13px;font-weight:500;color:var(--text);}
+.out-desc{font-size:11px;color:var(--text3);margin-top:2px;}
+.out-bdg{font-size:10px;font-weight:500;padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0;font-family:'DM Mono',monospace;}
+.cp-btn{font-size:11px;font-weight:500;padding:6px 13px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg4);color:var(--text2);cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s;font-family:'DM Sans',sans-serif;}
+.cp-btn:hover{border-color:var(--border3);color:var(--text);background:var(--bg);}
+.cp-btn.copied{color:var(--green);border-color:var(--green-bd);background:var(--green-bg);}
+.copy-raw-btn{display:block;width:100%;margin-top:12px;padding:10px;font-size:12px;font-weight:500;border:1px solid var(--accent);border-radius:var(--r);background:rgba(79,124,255,.08);color:var(--accent);cursor:pointer;text-align:center;transition:all .15s;font-family:'DM Sans',sans-serif;}
+.copy-raw-btn:hover{background:rgba(79,124,255,.15);}
+.copy-raw-btn.copied{color:var(--green);border-color:var(--green-bd);background:var(--green-bg);}
+
+/* FULLSCREEN */
+.fs-modal{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .2s;}
+.fs-modal.on{opacity:1;pointer-events:all;}
+.fs-bar{height:52px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:14px;flex-shrink:0;}
+.fs-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:600;color:var(--text2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fs-nav{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.fs-nav-btn{padding:5px 14px;font-size:11px;font-weight:500;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg3);color:var(--text2);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;}
+.fs-nav-btn:hover:not(:disabled){border-color:var(--border3);color:var(--text);}
+.fs-nav-btn:disabled{opacity:.3;cursor:default;}
+.fs-counter{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;white-space:nowrap;}
+.fs-close{padding:6px 16px;font-size:12px;font-weight:500;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg3);color:var(--text2);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;flex-shrink:0;}
+.fs-close:hover{border-color:var(--border3);color:var(--text);}
+.fs-frame{flex:1;border:none;background:#fff;width:100%;}
+
+/* ── MODAL BASE ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:900;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-overlay.on{opacity:1;pointer-events:all;}
+
+/* PASTE MODAL */
+.paste-modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);width:92%;max-width:700px;padding:26px;max-height:90vh;overflow-y:auto;}
+.paste-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:600;margin-bottom:4px;}
+.paste-sub{font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6;}
+.paste-name-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.paste-name-lbl{font-size:12px;color:var(--text2);white-space:nowrap;}
+.paste-name-inp{flex:1;padding:8px 12px;font-size:12px;background:var(--bg);color:var(--text);border:1px solid var(--border2);border-radius:var(--r);font-family:'DM Sans',sans-serif;}
+.paste-name-inp:focus{outline:none;border-color:var(--accent);}
+textarea.paste-ta{width:100%;height:240px;padding:12px;font-size:12px;font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);border:1px solid var(--border2);border-radius:var(--r);resize:vertical;line-height:1.6;}
+textarea.paste-ta:focus{outline:none;border-color:var(--accent);}
+.paste-actions{display:flex;gap:10px;margin-top:14px;justify-content:flex-end;}
+.paste-cancel{padding:8px 20px;font-size:12px;font-weight:500;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg3);color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.paste-cancel:hover{color:var(--text);}
+.paste-save{padding:8px 22px;font-size:12px;font-weight:500;border:1px solid var(--accent);border-radius:var(--r);background:rgba(79,124,255,.15);color:var(--accent);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.paste-save:hover{background:rgba(79,124,255,.25);}
+
+/* ── TOPIC MANAGER MODAL ── */
+.tm-modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);width:92%;max-width:560px;padding:0;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;}
+.tm-hdr{padding:20px 24px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.tm-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:600;margin-bottom:2px;}
+.tm-sub{font-size:11px;color:var(--text3);}
+.tm-body{flex:1;overflow-y:auto;padding:16px 24px;}
+.tm-footer{padding:14px 24px;border-top:1px solid var(--border);flex-shrink:0;}
+
+/* topic item in manager */
+.tm-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;background:var(--bg3);
+  border:1px solid var(--border2);border-radius:var(--r);
+  margin-bottom:6px;transition:border-color .15s;
+}
+.tm-item:hover{border-color:var(--border3);}
+.tm-item-name{
+  flex:1;font-size:13px;font-weight:500;color:var(--text);
+  background:transparent;border:none;font-family:'DM Sans',sans-serif;
+  padding:2px 4px;border-radius:4px;min-width:0;
+}
+.tm-item-name:focus{outline:none;background:var(--bg4);color:var(--text);}
+.tm-item-name.editing{background:var(--bg4);border:1px solid var(--accent);}
+
+/* confirm delete row */
+.tm-item.confirming{border-color:var(--coral);background:rgba(255,107,107,.05);}
+.tm-confirm-msg{font-size:11px;color:var(--coral);flex:1;}
+.tm-confirm-yes{padding:4px 12px;font-size:11px;font-weight:600;border:1px solid var(--coral);border-radius:5px;background:rgba(255,107,107,.12);color:var(--coral);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.tm-confirm-yes:hover{background:rgba(255,107,107,.22);}
+.tm-confirm-no{padding:4px 12px;font-size:11px;border:1px solid var(--border2);border-radius:5px;background:var(--bg4);color:var(--text3);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.tm-confirm-no:hover{color:var(--text2);}
+
+.tm-item-del{
+  width:24px;height:24px;border-radius:5px;
+  border:1px solid var(--border2);background:var(--bg4);
+  color:var(--text3);font-size:11px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;flex-shrink:0;
+}
+.tm-item-del:hover{border-color:var(--coral);color:var(--coral);}
+
+/* add topic row in manager */
+.tm-add-row{display:flex;gap:8px;margin-top:4px;}
+.tm-add-inp{
+  flex:1;padding:9px 12px;font-size:13px;
+  background:var(--bg);color:var(--text);
+  border:1px solid var(--border2);border-radius:var(--r);
+  font-family:'DM Sans',sans-serif;
+}
+.tm-add-inp:focus{outline:none;border-color:var(--accent);}
+.tm-add-inp::placeholder{color:var(--text3);}
+.tm-add-btn{padding:9px 16px;font-size:12px;font-weight:500;border:1px solid var(--accent);border-radius:var(--r);background:rgba(79,124,255,.12);color:var(--accent);cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all .15s;}
+.tm-add-btn:hover{background:rgba(79,124,255,.22);}
+.tm-close-btn{padding:8px 22px;font-size:12px;font-weight:500;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg3);color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;width:100%;}
+.tm-close-btn:hover{color:var(--text);border-color:var(--border3);}
+
+/* ── SECTION NOTES MODAL ── */
+.sn-modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);width:92%;max-width:680px;padding:0;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;}
+.sn-hdr{padding:20px 24px 16px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;gap:14px;}
+.sn-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:600;margin-bottom:2px;}
+.sn-sub{font-size:11px;color:var(--text3);}
+.sn-close{padding:6px 14px;font-size:11px;font-weight:500;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg3);color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;flex-shrink:0;}
+.sn-close:hover{color:var(--text);border-color:var(--border3);}
+.sn-body{flex:1;overflow-y:auto;padding:20px 24px;}
+
+.footer{text-align:center;padding:20px;font-size:11px;color:var(--text3);border-top:1px solid var(--border);margin-top:20px;}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-l">
+    <div class="logo">IC</div>
+    <div>
+      <div class="hdr-title">Insurance Training System</div>
+      <div class="hdr-sub">Notes · Slides · Prompts — all in one place</div>
+    </div>
+  </div>
+  <div class="drive-bar">
+    <div class="save-pill" id="savePill"><div class="save-dot"></div>Saved</div>
+    <button class="drive-btn" id="driveBtn" onclick="handleDriveClick()">
+      <span class="drive-status-dot" id="driveDot"></span>
+      <span id="driveBtnLabel">Connect Drive</span>
+    </button>
+  </div>
+</div>
+
+<!-- SETUP MODAL -->
+<div class="modal-overlay" id="setupOverlay">
+  <div class="setup-modal">
+    <div class="setup-title">☁️ Connect Google Drive</div>
+    <div class="setup-sub">One-time setup (5 min). Your data will auto-save to a file called <code>insurance_training_data.json</code> in your Google Drive.</div>
+
+    <div class="setup-step">
+      <div class="setup-num">1</div>
+      <div class="setup-step-body">
+        <div class="setup-step-title">Go to Google Cloud Console</div>
+        <div class="setup-step-desc">Visit <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> → Create a new project (name it anything, e.g. "Training System").</div>
+      </div>
+    </div>
+
+    <div class="setup-step">
+      <div class="setup-num">2</div>
+      <div class="setup-step-body">
+        <div class="setup-step-title">Enable Google Drive API</div>
+        <div class="setup-step-desc">In your project → <strong>APIs & Services → Library</strong> → search "Google Drive API" → Enable it.</div>
+      </div>
+    </div>
+
+    <div class="setup-step">
+      <div class="setup-num">3</div>
+      <div class="setup-step-body">
+        <div class="setup-step-title">Create OAuth credentials</div>
+        <div class="setup-step-desc">
+          Go to <strong>APIs & Services → Credentials → Create Credentials → OAuth client ID</strong>.<br>
+          Application type: <code>Web application</code><br>
+          Authorised JavaScript origins: add <code>null</code> (for local file) and your file's URL if hosted.<br>
+          Copy the <strong>Client ID</strong>.
+        </div>
+      </div>
+    </div>
+
+    <div class="setup-step">
+      <div class="setup-num">4</div>
+      <div class="setup-step-body">
+        <div class="setup-step-title">Configure OAuth consent screen</div>
+        <div class="setup-step-desc">Go to <strong>OAuth consent screen</strong> → External → add your Gmail as a test user → Save.</div>
+      </div>
+    </div>
+
+    <div class="setup-step">
+      <div class="setup-num">5</div>
+      <div class="setup-step-body">
+        <div class="setup-step-title">Paste your Client ID below</div>
+        <input class="setup-inp" id="clientIdInp" placeholder="xxxxx.apps.googleusercontent.com" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="setup-divider"></div>
+    <div class="setup-actions">
+      <button class="setup-cancel" onclick="closeSetup()">Cancel</button>
+      <button class="setup-connect" onclick="saveClientId()">Save & Connect →</button>
+    </div>
+  </div>
+</div>
+
+<!-- UNDO TOAST -->
+<div class="undo-toast" id="undoToast">
+  <div style="flex:1">
+    <div id="undoMsg"></div>
+    <div class="undo-progress" id="undoProgress" style="width:100%"></div>
+  </div>
+  <button class="undo-btn" onclick="doUndo()">Undo</button>
+</div>
+
+<div class="main">
+  <div class="stats" id="statsRow"></div>
+  <div class="legend">
+    <span class="leg-item"><span class="leg-dot-n" style="background:var(--teal)"></span><span class="leg-num" style="color:var(--teal)">N</span> = HTML notes uploaded</span>
+    <span class="leg-sep">·</span>
+    <span class="leg-item"><span class="leg-dot-n" style="background:var(--purple)"></span><span class="leg-num" style="color:var(--purple)">N</span> = slides stored</span>
+    <span class="leg-sep">·</span>
+    <span style="font-size:11px;color:var(--text3)">Only shown when count &gt; 0</span>
+  </div>
+  <div id="levelsContainer"></div>
+  <div class="footer">Data saves locally + syncs to Google Drive when connected · <span id="footerDriveStatus" style="color:var(--text3)">Drive: not connected</span></div>
+</div>
+
+<!-- FULLSCREEN VIEWER -->
+<div class="fs-modal" id="fsModal">
+  <div class="fs-bar">
+    <div class="fs-title" id="fsTitle"></div>
+    <div class="fs-nav">
+      <button class="fs-nav-btn" id="fsPrev" onclick="fsStep(-1)">← Prev</button>
+      <span class="fs-counter" id="fsCounter"></span>
+      <button class="fs-nav-btn" id="fsNext" onclick="fsStep(1)">Next →</button>
+    </div>
+    <button class="fs-close" onclick="closeFS()">✕ Close</button>
+  </div>
+  <iframe class="fs-frame" id="fsFrame" sandbox="allow-scripts allow-same-origin"></iframe>
+</div>
+
+<!-- PASTE MODAL (slides + note HTML) -->
+<div class="modal-overlay" id="pasteOverlay">
+  <div class="paste-modal">
+    <div class="paste-title" id="pasteTitle">Add Item</div>
+    <div class="paste-sub" id="pasteSub">Give it a name, then paste your full HTML.</div>
+    <div class="paste-name-row">
+      <span class="paste-name-lbl">Name:</span>
+      <input class="paste-name-inp" id="pasteNameInp" type="text" placeholder="e.g. April 2026 Rates…" maxlength="60">
+    </div>
+    <textarea class="paste-ta" id="pasteTa" placeholder="<!DOCTYPE html>&#10;<html>&#10;  ...paste your full HTML here...&#10;</html>"></textarea>
+    <div class="paste-actions">
+      <button class="paste-cancel" onclick="closePasteModal()">Cancel</button>
+      <button class="paste-save" id="pasteSaveBtn" onclick="savePasteModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOPIC MANAGER MODAL -->
+<div class="modal-overlay" id="tmOverlay">
+  <div class="tm-modal">
+    <div class="tm-hdr">
+      <div class="tm-title" id="tmTitle">Edit Topics</div>
+      <div class="tm-sub">Click a name to rename · Press Enter to confirm</div>
+    </div>
+    <div class="tm-body" id="tmBody"></div>
+    <div class="tm-footer">
+      <div class="tm-add-row">
+        <input class="tm-add-inp" id="tmAddInp" placeholder="New topic name…" maxlength="80">
+        <button class="tm-add-btn" onclick="tmAddTopic()">+ Add</button>
+      </div>
+      <div style="margin-top:10px">
+        <button class="tm-close-btn" onclick="closeTM()">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION NOTES MODAL -->
+<div class="modal-overlay" id="snOverlay">
+  <div class="sn-modal">
+    <div class="sn-hdr">
+      <div>
+        <div class="sn-title" id="snTitle">Section Notes</div>
+        <div class="sn-sub" id="snSub">Notes for this section</div>
+      </div>
+      <button class="sn-close" onclick="closeSN()">✕ Close</button>
+    </div>
+    <div class="sn-body" id="snBody"></div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════
+   CURRICULUM SEED
+══════════════════════════════════ */
+const LEVELS_SEED=[
+  {num:1,name:'Wealth protection',color:'#4f7cff',sections:[
+    {label:'Medical trinity',isNew:true,topics:['Accident policies','Hospital policies','Gender-related illnesses policies']},
+    {label:'Income and liability replacement',isNew:true,topics:['Term life policies','Whole life policies','Investment-linked policies with insurance']}
+  ]},
+  {num:2,name:'Wealth accumulation',color:'#34c97a',sections:[
+    {label:'Low risk low rewards',isNew:true,topics:['Short-term capital guaranteed products','Savings policies']},
+    {label:'High risk high rewards',isNew:true,topics:['Brokerages','Unit trust','Investment-linked policies','Capital guaranteed investments']}
+  ]},
+  {num:3,name:'Wealth preservation',color:'#f5a623',sections:[
+    {label:'Preservation core',topics:['Supplementary retirement scheme','Long-term care']}
+  ]},
+  {num:4,name:'Estate planning',color:'#f472b6',sections:[
+    {label:'Estate core',topics:['Will','Lasting power of attorney (LPA)','Advanced medical directive (AMD)','Intestacy rules','Nominations (CPF and insurance)','Retirement income']}
+  ]},
+  {num:5,name:'Legacy planning',color:'#a78bfa',sections:[
+    {label:'Legacy core',topics:['Trust and creating a dynasty','Universal life','Philanthropy']}
+  ]},
+  {num:6,name:'Business planning',color:'#9899a8',sections:[
+    {label:'Business continuity',topics:['Buy-sell agreement','Keyman insurance','Golden handcuff','New topic 4','New topic 5','New topic 6']}
+  ]}
+];
+
+const OUTPUTS=[
+  {key:'raw',label:'Raw',name:'Raw data',desc:'Foundation — run this first',badge:'Foundation',bc:'rgba(152,153,168,0.12)',tc:'#9899a8'},
+  {key:'rec',label:'Rec',name:'Recruit slides',desc:'Educational depth + objection handling for new recruits',badge:'Recruits',bc:'rgba(167,139,250,0.12)',tc:'#a78bfa'},
+  {key:'cli',label:'Cli',name:'Client slides',desc:'Concise, visual, benefit-focused sales deck',badge:'Clients',bc:'rgba(52,201,122,0.12)',tc:'#34c97a'},
+  {key:'edml',label:'EDM-L',name:'EDM lite',desc:'Short pre-meeting teaser email to spark interest',badge:'Pre-meeting',bc:'rgba(255,107,107,0.12)',tc:'#ff6b6b'},
+  {key:'edmf',label:'EDM-F',name:'EDM full',desc:'Detailed post-meeting follow-up and summary email',badge:'Post-meeting',bc:'rgba(255,209,102,0.12)',tc:'#ffd166'}
+];
+const OKEYS=OUTPUTS.map(o=>o.key);
+
+const PROMPTS={
+  raw:(t,n)=>`You are helping an insurance manager organise training material.\n\nStructure the raw information below into:\n1. PRODUCT OVERVIEW\n2. KEY FEATURES & BENEFITS\n3. COVERAGE & EXCLUSIONS\n4. PREMIUM & PAYOUT STRUCTURE\n5. COMMON CLIENT QUESTIONS (at least 5)\n6. COMPLIANCE & REGULATORY NOTES\n7. COMPARISON NOTES\n\nUse plain English. Flag gaps with [MISSING: ...].\n\n---\nTOPIC: ${t}\n\nRAW INFORMATION:\n${n||'[Paste your raw notes, product sheets, or brochure content here]'}`,
+  rec:t=>`Create a training slide deck for new insurance recruits in Singapore.\n\nAUDIENCE: New recruits (0–12 months).\n\nSLIDE STRUCTURE:\n1. Title\n2. Why this product exists\n3. How it works\n4. Key features\n5. Coverage & exclusions\n6. Premium & payout example\n7. Client profiles (3)\n8. Tough questions (5)\n9. Compliance checklist\n10. Summary\n\n---\nTOPIC: ${t}\n\nSTRUCTURED TOPIC INFORMATION:\n[Paste Raw data output here]`,
+  cli:t=>`Create a client-facing sales deck for an insurance adviser in Singapore.\n\nAUDIENCE: General public. Max 8–10 slides. Warm, benefit-focused, no jargon.\n\nSLIDE STRUCTURE:\n1. Opening hook\n2. The problem\n3. The solution\n4. Key benefits (max 4)\n5. How it works\n6. Real example\n7. Covered vs not covered\n8. Why act now\n9. Next steps\n\n---\nTOPIC: ${t}\n\nSTRUCTURED TOPIC INFORMATION:\n[Paste Raw data output here]`,
+  edml:t=>`Write a pre-meeting teaser email. Conversational, warm, 100–130 words.\n\nFORMAT:\n- Subject line: 2 options\n- Preview text\n- Body: opening → hook → teaser → sign-off\n\n---\nTOPIC: ${t}\n\nSTRUCTURED TOPIC INFORMATION:\n[Paste Raw data output here]`,
+  edmf:t=>`Write a post-meeting follow-up email. Professional, 300–400 words.\n\nFORMAT:\n- Subject line: 2 options\n- Body: recap → summary → key points → next steps → FAQ → CTA\n- Footer: [ADVISER NAME | LICENCE | FIRM | MAS DISCLAIMER]\n\n---\nTOPIC: ${t}\n\nSTRUCTURED TOPIC INFORMATION:\n[Paste Raw data output here]`
+};
+
+/* ══════════════════════════════════
+   STATE
+══════════════════════════════════ */
+const LS='ins_training_v4';
+function loadState(){
+  try{
+    const r=localStorage.getItem(LS);
+    if(r){const p=JSON.parse(r);if(p.curriculum)return p;}
+  }catch(e){}
+  return{curriculum:JSON.parse(JSON.stringify(LEVELS_SEED)),topics:{},sectionNotes:{},collapsed:{}};
+}
+function saveState(){
+  try{localStorage.setItem(LS,JSON.stringify(appState));flashSave()}catch(e){}
+  driveSaveDebounced();
+}
+let appState=loadState();
+if(!appState.curriculum)appState.curriculum=JSON.parse(JSON.stringify(LEVELS_SEED));
+if(!appState.topics)appState.topics={};
+if(!appState.sectionNotes)appState.sectionNotes={};
+if(!appState.collapsed)appState.collapsed={};
+
+function getCurr(){return appState.curriculum}
+function snKey(lnum,slabel){return `sn|${lnum}|${slabel}`}
+function getSN(lnum,slabel){return appState.sectionNotes[snKey(lnum,slabel)]||{}}
+function snHasContent(lnum,slabel){
+  const sn=getSN(lnum,slabel);
+  return !!(sn.notes&&sn.notes.trim())||(sn.notes_html&&sn.notes_html.length>0);
+}
+
+function ks(l,s,t){return `${l}|${s}|${t}`}
+function sid(k){return k.replace(/[^a-zA-Z0-9]/g,'_')}
+function ts(k){return appState.topics[k]||{}}
+function isDone(k,o){return !!(ts(k).done&&ts(k).done[o])}
+function getNoteHtmls(k){return ts(k).notes_html||[]}
+function getSlides(k,type){return(ts(k).slides&&ts(k).slides[type])||[]}
+function totalSlideCount(k){return['rec','cli','edmr','edmc'].reduce((a,t)=>a+getSlides(k,t).length,0)}
+function noteHtmlCount(k){return getNoteHtmls(k).length}
+function topicStatus(k){const d=ts(k).done||{};const n=OKEYS.filter(o=>d[o]).length;return n===0?'none':n===5?'done':'partial'}
+
+function ensureTopic(k){
+  if(!appState.topics[k])appState.topics[k]={};
+  const t=appState.topics[k];
+  if(!t.done)t.done={};
+  if(!t.notes_html)t.notes_html=[];
+  if(!t.slides)t.slides={rec:[],cli:[],edmr:[],edmc:[]};
+  ['rec','cli','edmr','edmc'].forEach(x=>{if(!t.slides[x])t.slides[x]=[]});
+}
+function ensureSN(lnum,slabel){
+  const k=snKey(lnum,slabel);
+  if(!appState.sectionNotes[k])appState.sectionNotes[k]={notes:'',notes_html:[]};
+  const sn=appState.sectionNotes[k];
+  if(!sn.notes_html)sn.notes_html=[];
+  return sn;
+}
+
+function genId(){return 'id_'+Date.now()+'_'+Math.random().toString(36).slice(2,5)}
+
+function toggleDone(k,o){ensureTopic(k);appState.topics[k].done[o]=!appState.topics[k].done[o];saveState();render()}
+function toggleCollapsed(n){appState.collapsed[n]=!appState.collapsed[n];saveState();render()}
+function setNotes(k,v){ensureTopic(k);appState.topics[k].notes=v;saveState()}
+
+/* Note HTML (topic-level) */
+function addNoteHtml(k,name,html){ensureTopic(k);appState.topics[k].notes_html.push({id:genId(),name:name||'Untitled',html});saveState()}
+function updateNoteHtml(k,id,name,html){ensureTopic(k);const n=appState.topics[k].notes_html.find(x=>x.id===id);if(n){n.name=name;n.html=html;saveState()}}
+function updateNoteHtmlName(k,id,name){ensureTopic(k);const n=appState.topics[k].notes_html.find(x=>x.id===id);if(n){n.name=name||'Untitled';saveState()}}
+function deleteNoteHtml(k,id){ensureTopic(k);appState.topics[k].notes_html=appState.topics[k].notes_html.filter(x=>x.id!==id);saveState()}
+
+/* Section-level notes */
+function setSNNotes(lnum,slabel,v){const sn=ensureSN(lnum,slabel);sn.notes=v;saveState()}
+function addSNHtml(lnum,slabel,name,html){const sn=ensureSN(lnum,slabel);sn.notes_html.push({id:genId(),name:name||'Untitled',html});saveState()}
+function updateSNHtml(lnum,slabel,id,name,html){const sn=ensureSN(lnum,slabel);const n=sn.notes_html.find(x=>x.id===id);if(n){n.name=name;n.html=html;saveState()}}
+function updateSNHtmlName(lnum,slabel,id,name){const sn=ensureSN(lnum,slabel);const n=sn.notes_html.find(x=>x.id===id);if(n){n.name=name||'Untitled';saveState()}}
+function deleteSNHtml(lnum,slabel,id){const sn=ensureSN(lnum,slabel);sn.notes_html=sn.notes_html.filter(x=>x.id!==id);saveState()}
+
+/* Slides */
+function addSlide(k,type,name,html){ensureTopic(k);appState.topics[k].slides[type].push({id:genId(),name:name||'Untitled',html});saveState()}
+function updateSlide(k,type,id,name,html){ensureTopic(k);const sl=appState.topics[k].slides[type].find(s=>s.id===id);if(sl){sl.name=name;sl.html=html;saveState()}}
+function updateSlideName(k,type,id,name){ensureTopic(k);const sl=appState.topics[k].slides[type].find(s=>s.id===id);if(sl){sl.name=name||'Untitled';saveState()}}
+function deleteSlide(k,type,id){ensureTopic(k);appState.topics[k].slides[type]=appState.topics[k].slides[type].filter(s=>s.id!==id);saveState()}
+
+/* ══════════════════════════════════
+   UNDO
+══════════════════════════════════ */
+let undoStack=null,undoTimer=null;
+function deleteTopic(lnum,slabel,topicName){
+  const lvl=appState.curriculum.find(l=>l.num===lnum);if(!lvl)return;
+  const sec=lvl.sections.find(s=>s.label===slabel);if(!sec)return;
+  const idx=sec.topics.indexOf(topicName);if(idx===-1)return;
+  const k=ks(lnum,slabel,topicName);
+  const saved=appState.topics[k]?JSON.parse(JSON.stringify(appState.topics[k])):null;
+  sec.topics.splice(idx,1);
+  if(openTopic===k)openTopic=null;
+  saveState();render();
+  if(tmCtx&&tmCtx.lnum===lnum&&tmCtx.slabel===slabel)renderTM();
+  undoStack={lnum,slabel,topicName,idx,saved,k};
+  showUndo(`"${topicName}" deleted`);
+}
+function doUndo(){
+  if(!undoStack)return;
+  const{lnum,slabel,topicName,idx,saved,k}=undoStack;
+  const lvl=appState.curriculum.find(l=>l.num===lnum);if(!lvl)return;
+  const sec=lvl.sections.find(s=>s.label===slabel);if(!sec)return;
+  sec.topics.splice(idx,0,topicName);
+  if(saved)appState.topics[k]=saved;
+  undoStack=null;hideUndo();saveState();render();
+  if(tmCtx&&tmCtx.lnum===lnum&&tmCtx.slabel===slabel)renderTM();
+}
+function showUndo(msg){
+  clearTimeout(undoTimer);
+  document.getElementById('undoMsg').textContent=msg;
+  const prog=document.getElementById('undoProgress');
+  prog.style.transition='none';prog.style.width='100%';
+  document.getElementById('undoToast').classList.add('on');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{prog.style.transition='width 30s linear';prog.style.width='0%'}));
+  undoTimer=setTimeout(()=>{hideUndo();undoStack=null},30000);
+}
+function hideUndo(){document.getElementById('undoToast').classList.remove('on');clearTimeout(undoTimer);}
+
+function flashSave(){const el=document.getElementById('savePill');el.classList.add('on');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('on'),2000)}
+
+/* ══════════════════════════════════
+   STATS
+══════════════════════════════════ */
+function allKeys(){const r=[];getCurr().forEach(l=>l.sections.forEach(s=>s.topics.forEach(t=>r.push(ks(l.num,s.label,t)))));return r}
+function totalT(){return allKeys().length}
+function doneT(){return allKeys().filter(k=>{const d=ts(k).done||{};return OKEYS.every(o=>d[o])}).length}
+function doneO(){let n=0;allKeys().forEach(k=>{const d=ts(k).done||{};OKEYS.forEach(o=>{if(d[o])n++})});return n}
+function totalSlidesAll(){let n=0;allKeys().forEach(k=>n+=totalSlideCount(k));return n}
+
+/* ══════════════════════════════════
+   UI STATE
+══════════════════════════════════ */
+let openTopic=null,tabState={};
+function toggleTopic(k){openTopic=openTopic===k?null:k;if(openTopic===k&&!tabState[k])tabState[k]='notes';render()}
+function switchTab(k,tab){
+  tabState[k]=tab;const s=sid(k);
+  ['notes','slides','prompts'].forEach(t=>{
+    const tb=document.getElementById('dtab_'+t+'_'+s);
+    const pn=document.getElementById('dpanel_'+t+'_'+s);
+    if(tb)tb.classList.toggle('active',t===tab);
+    if(pn)pn.style.display=t===tab?'block':'none';
+  });
+}
+
+/* ══════════════════════════════════
+   NOTES SAVE
+══════════════════════════════════ */
+function saveNotes(k){
+  const ta=document.getElementById('ta_'+sid(k));if(!ta)return;
+  setNotes(k,ta.value);render();
+  const btn=document.getElementById('sb_'+sid(k));
+  if(btn){btn.textContent='Saved ✓';btn.classList.add('saved');setTimeout(()=>{btn.textContent='Save notes';btn.classList.remove('saved')},2000)}
+}
+
+/* ══════════════════════════════════
+   PASTE MODAL (slides + note html)
+══════════════════════════════════ */
+let pasteCtx=null;
+function openPasteModal(ctx){
+  pasteCtx=ctx;
+  const isSlide=ctx.mode==='slide';
+  const snMode=ctx.mode==='sn_html';
+  const labels={rec:'Education',cli:'Client',edmr:'EDM — Education',edmc:'EDM — Client'};
+  const typeLabel=isSlide?(labels[ctx.type]||ctx.type):snMode?'Section':'Reference HTML';
+  const editing=!!ctx.itemId;
+  document.getElementById('pasteTitle').textContent=(editing?'Edit ':'Add ')+typeLabel+(isSlide?' Slide':' Note');
+  document.getElementById('pasteSub').textContent='Give it a name, then paste your full HTML.';
+  document.getElementById('pasteSaveBtn').textContent=editing?'Update':'Save';
+  if(editing){
+    let list;
+    if(isSlide) list=getSlides(ctx.k,ctx.type);
+    else if(snMode) list=getSN(ctx.lnum,ctx.slabel).notes_html||[];
+    else list=getNoteHtmls(ctx.k);
+    const item=(list||[]).find(x=>x.id===ctx.itemId)||{};
+    document.getElementById('pasteNameInp').value=item.name||'';
+    document.getElementById('pasteTa').value=item.html||'';
+  }else{
+    document.getElementById('pasteNameInp').value='';
+    document.getElementById('pasteTa').value='';
+  }
+  document.getElementById('pasteOverlay').classList.add('on');
+  setTimeout(()=>document.getElementById('pasteNameInp').focus(),80);
+}
+function closePasteModal(){document.getElementById('pasteOverlay').classList.remove('on');pasteCtx=null}
+function savePasteModal(){
+  if(!pasteCtx)return;
+  const name=document.getElementById('pasteNameInp').value.trim()||'Untitled';
+  const html=document.getElementById('pasteTa').value.trim();
+  if(!html){alert('Please paste your HTML code first.');return}
+  const{mode,k,type,itemId,lnum,slabel}=pasteCtx;
+  if(mode==='slide'){itemId?updateSlide(k,type,itemId,name,html):addSlide(k,type,name,html)}
+  else if(mode==='sn_html'){itemId?updateSNHtml(lnum,slabel,itemId,name,html):addSNHtml(lnum,slabel,name,html)}
+  else{itemId?updateNoteHtml(k,itemId,name,html):addNoteHtml(k,name,html)}
+  closePasteModal();
+  // re-render section notes modal if open
+  if(snCtx&&mode==='sn_html')renderSNBody();
+  render();
+}
+document.getElementById('pasteOverlay').addEventListener('click',e=>{if(e.target.id==='pasteOverlay')closePasteModal()});
+
+/* ══════════════════════════════════
+   TOPIC MANAGER MODAL
+══════════════════════════════════ */
+let tmCtx=null,tmConfirming={};
+function openTM(lnum,slabel,secLabel){
+  tmCtx={lnum,slabel,secLabel};tmConfirming={};
+  document.getElementById('tmTitle').textContent='Edit Topics — '+secLabel;
+  document.getElementById('tmAddInp').value='';
+  renderTM();
+  document.getElementById('tmOverlay').classList.add('on');
+}
+function closeTM(){document.getElementById('tmOverlay').classList.remove('on');tmCtx=null;tmConfirming={};render()}
+function renderTM(){
+  if(!tmCtx)return;
+  const{lnum,slabel}=tmCtx;
+  const lvl=appState.curriculum.find(l=>l.num===lnum);
+  const sec=lvl?lvl.sections.find(s=>s.label===slabel):null;
+  const topics=sec?sec.topics:[];
+  const body=document.getElementById('tmBody');
+  body.innerHTML='';
+  if(topics.length===0){
+    body.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">No topics yet — add one below.</div>';
+    return;
+  }
+  topics.forEach((topic,idx)=>{
+    const item=document.createElement('div');
+    if(tmConfirming[idx]){
+      item.className='tm-item confirming';
+      item.innerHTML=`
+        <span class="tm-confirm-msg">Delete "<strong>${topic}</strong>"?</span>
+        <button class="tm-confirm-yes" data-idx="${idx}">Yes, delete</button>
+        <button class="tm-confirm-no" data-idx="${idx}">Cancel</button>
+      `;
+      item.querySelector('.tm-confirm-yes').onclick=()=>{
+        deleteTopic(lnum,slabel,topic);
+        delete tmConfirming[idx];
+      };
+      item.querySelector('.tm-confirm-no').onclick=()=>{
+        delete tmConfirming[idx];renderTM();
+      };
+    } else {
+      item.className='tm-item';
+      item.innerHTML=`
+        <input class="tm-item-name" value="${topic.replace(/"/g,'&quot;')}" data-idx="${idx}" spellcheck="false">
+        <button class="tm-item-del" data-idx="${idx}" title="Delete">✕</button>
+      `;
+      const inp=item.querySelector('.tm-item-name');
+      inp.onblur=()=>{
+        const newName=inp.value.trim();
+        if(newName&&newName!==topic){
+          sec.topics[idx]=newName;saveState();render();
+        }
+      };
+      inp.onkeydown=e=>{if(e.key==='Enter')inp.blur()};
+      item.querySelector('.tm-item-del').onclick=()=>{
+        tmConfirming[idx]=true;renderTM();
+      };
+    }
+    body.appendChild(item);
+  });
+}
+function tmAddTopic(){
+  if(!tmCtx)return;
+  const inp=document.getElementById('tmAddInp');
+  const name=inp.value.trim();if(!name)return;
+  const{lnum,slabel}=tmCtx;
+  const lvl=appState.curriculum.find(l=>l.num===lnum);
+  const sec=lvl?lvl.sections.find(s=>s.label===slabel):null;
+  if(!sec)return;
+  sec.topics.push(name);inp.value='';saveState();render();renderTM();
+}
+document.getElementById('tmAddInp').onkeydown=e=>{if(e.key==='Enter')tmAddTopic()};
+document.getElementById('tmOverlay').addEventListener('click',e=>{if(e.target.id==='tmOverlay')closeTM()});
+
+/* ══════════════════════════════════
+   SECTION NOTES MODAL
+══════════════════════════════════ */
+let snCtx=null;
+function openSN(lnum,slabel,secLabel){
+  snCtx={lnum,slabel,secLabel};
+  document.getElementById('snTitle').textContent=secLabel+' — Section Notes';
+  document.getElementById('snSub').textContent='Notes and resources for the entire section';
+  renderSNBody();
+  document.getElementById('snOverlay').classList.add('on');
+}
+function closeSN(){
+  // auto-save textarea
+  const ta=document.getElementById('snTa');
+  if(ta&&snCtx)setSNNotes(snCtx.lnum,snCtx.slabel,ta.value);
+  document.getElementById('snOverlay').classList.remove('on');snCtx=null;render();
+}
+function renderSNBody(){
+  if(!snCtx)return;
+  const{lnum,slabel}=snCtx;
+  const sn=getSN(lnum,slabel);
+  const noteHtmls=sn.notes_html||[];
+  const noteHtmlRows=noteHtmls.map(nh=>`
+    <div class="note-html-row">
+      <span class="note-html-icon">📄</span>
+      <span class="sn-nh-name" contenteditable="true" data-id="${nh.id}">${nh.name}</span>
+      <button class="note-html-open sn-nh-open" data-id="${nh.id}">Open ↗</button>
+      <button class="note-html-edit sn-nh-edit" data-id="${nh.id}">✎</button>
+      <button class="note-html-del sn-nh-del" data-id="${nh.id}">✕</button>
+    </div>`).join('');
+
+  const body=document.getElementById('snBody');
+  body.innerHTML=`
+    <div class="notes-html-section">
+      <div class="notes-html-hdr">
+        <span class="notes-html-title">HTML Reference Notes${noteHtmls.length>0?` <span style="color:var(--teal);font-family:'DM Mono',monospace">${noteHtmls.length}</span>`:''}</span>
+        <button class="add-note-html-btn" id="snAddHtmlBtn">+ Add HTML note</button>
+      </div>
+      <div class="note-html-list">
+        ${noteHtmls.length>0
+          ? noteHtmlRows
+          :'<div class="note-html-empty">📄 No HTML notes yet — click "+ Add HTML note" to add one</div>'}
+      </div>
+    </div>
+    <hr class="notes-divider">
+    <div class="notes-lbl">Written notes</div>
+    <div class="notes-sub">General notes for this section — context, strategy, overview, anything useful.</div>
+    <textarea class="rnotes" id="snTa" rows="9" placeholder="Section overview, strategy notes, key themes across topics...">${sn.notes||''}</textarea>
+    <div class="save-row">
+      <button class="save-btn" id="snSaveBtn">Save notes</button>
+      <span class="save-hint">Auto-saves when you close</span>
+    </div>
+  `;
+  body.querySelector('#snAddHtmlBtn').onclick=()=>openPasteModal({mode:'sn_html',lnum,slabel,itemId:null});
+  body.querySelector('#snSaveBtn').onclick=()=>{
+    const ta=body.querySelector('#snTa');
+    if(ta){setSNNotes(lnum,slabel,ta.value);render();}
+    const btn=body.querySelector('#snSaveBtn');
+    btn.textContent='Saved ✓';btn.classList.add('saved');
+    setTimeout(()=>{btn.textContent='Save notes';btn.classList.remove('saved')},2000);
+  };
+  body.querySelectorAll('.sn-nh-open').forEach(el=>{
+    el.onclick=()=>{
+      const nh=getSN(lnum,slabel).notes_html.find(x=>x.id===el.dataset.id);
+      if(nh)openFSSingle(nh,snCtx.secLabel+' — '+nh.name);
+    };
+  });
+  body.querySelectorAll('.sn-nh-edit').forEach(el=>{
+    el.onclick=()=>openPasteModal({mode:'sn_html',lnum,slabel,itemId:el.dataset.id});
+  });
+  body.querySelectorAll('.sn-nh-del').forEach(el=>{
+    el.onclick=()=>{
+      if(confirm('Delete this HTML note?')){deleteSNHtml(lnum,slabel,el.dataset.id);renderSNBody();render();}
+    };
+  });
+  body.querySelectorAll('.sn-nh-name').forEach(el=>{
+    el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.blur()}});
+    el.addEventListener('blur',()=>updateSNHtmlName(lnum,slabel,el.dataset.id,el.textContent.trim()));
+  });
+}
+document.getElementById('snOverlay').addEventListener('click',e=>{if(e.target.id==='snOverlay')closeSN()});
+
+/* ══════════════════════════════════
+   FULLSCREEN
+══════════════════════════════════ */
+let fsQueue=[],fsIdx=0,fsTopicLabel='';
+function openFS(slides,startIdx,topicName,typeLabel){fsQueue=slides;fsIdx=startIdx;fsTopicLabel=topicName+' — '+typeLabel;renderFS();document.getElementById('fsModal').classList.add('on')}
+function openFSSingle(item,label){fsQueue=[item];fsIdx=0;fsTopicLabel=label;renderFS();document.getElementById('fsModal').classList.add('on')}
+function renderFS(){
+  const sl=fsQueue[fsIdx];
+  document.getElementById('fsTitle').textContent=fsTopicLabel+(fsQueue.length>1?' · '+sl.name:'');
+  document.getElementById('fsFrame').srcdoc=sl.html;
+  document.getElementById('fsCounter').textContent=fsQueue.length>1?(fsIdx+1)+' / '+fsQueue.length:'';
+  document.getElementById('fsPrev').disabled=fsIdx===0;
+  document.getElementById('fsNext').disabled=fsIdx===fsQueue.length-1;
+}
+function fsStep(dir){fsIdx=Math.max(0,Math.min(fsQueue.length-1,fsIdx+dir));renderFS()}
+function closeFS(){document.getElementById('fsModal').classList.remove('on');document.getElementById('fsFrame').srcdoc='';fsQueue=[];}
+
+/* ══════════════════════════════════
+   COPY
+══════════════════════════════════ */
+function copyRaw(k,topic,btnId){
+  const ta=document.getElementById('ta_'+sid(k));
+  const n=ta?ta.value.trim():(ts(k).notes||'');
+  navigator.clipboard.writeText(PROMPTS.raw(topic,n||null)).then(()=>{
+    const btn=document.getElementById(btnId);
+    if(btn){btn.textContent='Copied!';btn.classList.add('copied');setTimeout(()=>{btn.textContent='Copy Raw data prompt with notes ↗';btn.classList.remove('copied')},2000)}
+  });
+}
+function copyP(okey,topic,k,bid){
+  const n=ts(k).notes||null;
+  const txt=okey==='raw'?PROMPTS.raw(topic,n):PROMPTS[okey](topic);
+  navigator.clipboard.writeText(txt).then(()=>{
+    const btn=document.getElementById(bid);
+    if(btn){btn.textContent='Copied!';btn.classList.add('copied');setTimeout(()=>{btn.textContent='Copy prompt';btn.classList.remove('copied')},2000)}
+  });
+}
+
+/* ══════════════════════════════════
+   RENDER
+══════════════════════════════════ */
+function render(){
+  document.getElementById('statsRow').innerHTML=`
+    <div class="sc"><div class="sc-n">${totalT()}</div><div class="sc-l">Topics</div></div>
+    <div class="sc"><div class="sc-n" style="color:var(--green)">${doneT()}</div><div class="sc-l">Fully done</div></div>
+    <div class="sc"><div class="sc-n" style="color:var(--accent)">${doneO()}</div><div class="sc-l">Outputs done</div></div>
+    <div class="sc"><div class="sc-n" style="color:var(--purple)">${totalSlidesAll()}</div><div class="sc-l">Slides stored</div></div>
+  `;
+
+  const con=document.getElementById('levelsContainer');
+  con.innerHTML='';
+
+  getCurr().forEach(lvl=>{
+    const isColl=!!appState.collapsed[lvl.num];
+    const block=document.createElement('div');
+    block.className='lvl-block'+(isColl?' collapsed':'');
+
+    let dDone=0,dTotal=0;
+    lvl.sections.forEach(s=>s.topics.forEach(t=>{
+      dTotal++;
+      const k=ks(lvl.num,s.label,t);
+      const d=ts(k).done||{};
+      if(OKEYS.every(o=>d[o]))dDone++;
+    }));
+
+    const hdr=document.createElement('div');
+    hdr.className='lvl-hdr';
+    hdr.innerHTML=`
+      <span class="lvl-badge" style="background:${lvl.color}22;color:${lvl.color};border:1px solid ${lvl.color}44">${lvl.name}</span>
+      <span class="lvl-count">${dDone}/${dTotal}</span>
+      <span class="chev">▾</span>
+    `;
+    hdr.onclick=()=>toggleCollapsed(lvl.num);
+    block.appendChild(hdr);
+
+    if(!isColl){
+      const body=document.createElement('div');
+      body.className='lvl-body';
+
+      lvl.sections.forEach(sec=>{
+        const secWrap=document.createElement('div');
+        secWrap.className='sec-wrap';
+
+        const secHdr=document.createElement('div');
+        secHdr.className='sec-hdr';
+        secHdr.innerHTML=`
+          <div class="sec-hdr-left"><span class="sec-lbl" data-lnum="${lvl.num}" data-slabel="${sec.label}" data-seclabel="${sec.label}">${sec.label}</span></div>
+          <button class="edit-topics-btn" data-lnum="${lvl.num}" data-slabel="${sec.label}" data-seclabel="${sec.label}">✎ Edit</button>
+        `;
+        secWrap.appendChild(secHdr);
+
+        sec.topics.forEach(topic=>{
+          const k=ks(lvl.num,sec.label,topic);
+          const s=sid(k);
+          const isOpen=openTopic===k;
+          const tab=tabState[k]||'notes';
+          const nc=noteHtmlCount(k);
+          const sc=totalSlideCount(k);
+
+          const wrap=document.createElement('div');
+          wrap.className='t-wrap';
+
+          let badgesHtml='<div class="t-badges">';
+          if(nc>0)badgesHtml+=`<span class="t-badge t-badge-note"><span class="t-badge-dot" style="background:var(--teal)"></span>${nc}</span>`;
+          if(sc>0)badgesHtml+=`<span class="t-badge t-badge-slide"><span class="t-badge-dot" style="background:var(--purple)"></span>${sc}</span>`;
+          badgesHtml+='</div>';
+
+          const rowDiv=document.createElement('div');
+          rowDiv.className='t-row'+(isOpen?' open':'');
+          rowDiv.innerHTML=`<span class="t-name">${topic}</span>${badgesHtml}<span class="tog">${isOpen?'▴':'▾'}</span>`;
+          rowDiv.onclick=()=>toggleTopic(k);
+          wrap.appendChild(rowDiv);
+
+          if(isOpen){
+            const detail=document.createElement('div');
+            detail.className='detail';
+
+            function buildSlideSection(type,typeLabel,color,slides){
+              const badge=`<span class="slides-type-badge" style="background:${color}18;color:${color};border:1px solid ${color}33">${slides.length}</span>`;
+              let thumbsHtml='';
+              slides.forEach((sl,i)=>{
+                const safeHtml=sl.html.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+                thumbsHtml+=`
+                  <div class="slide-thumb">
+                    <div class="slide-thumb-preview open-fs-btn" data-k="${k}" data-type="${type}" data-idx="${i}">
+                      <iframe sandbox="allow-scripts allow-same-origin" srcdoc="${safeHtml}"
+                        style="width:300%;height:300%;transform:scale(0.333);transform-origin:top left;border:none;pointer-events:none;display:block;"></iframe>
+                      <div class="slide-thumb-overlay"><div class="slide-open-btn">⛶ Open fullscreen</div></div>
+                    </div>
+                    <div class="slide-thumb-footer">
+                      <span class="slide-thumb-name" contenteditable="true" data-k="${k}" data-type="${type}" data-id="${sl.id}">${sl.name}</span>
+                      <div class="slide-thumb-actions">
+                        <button class="sth-btn edit-slide-btn" data-k="${k}" data-type="${type}" data-id="${sl.id}">✎</button>
+                        <button class="sth-btn del del-slide-btn" data-k="${k}" data-type="${type}" data-id="${sl.id}">✕</button>
+                      </div>
+                    </div>
+                  </div>`;
+              });
+              const emptyOrGrid=slides.length===0
+                ?`<div class="slides-empty add-slide-empty" data-k="${k}" data-type="${type}"><div class="slides-empty-icon">⧉</div><span>No slides yet — click to add one</span></div>`
+                :`<div class="slide-thumbs">${thumbsHtml}</div>`;
+              return `<div class="slides-section">
+                <div class="slides-section-hdr">
+                  <span class="slides-section-title">${typeLabel} ${badge}</span>
+                  ${slides.length>0?`<button class="add-slide-btn" data-k="${k}" data-type="${type}">+ Add slide</button>`:''}
+                </div>${emptyOrGrid}</div>`;
+            }
+
+            const noteHtmls=getNoteHtmls(k);
+            const noteHtmlRows=noteHtmls.map(nh=>`
+              <div class="note-html-row">
+                <span class="note-html-icon">📄</span>
+                <span class="note-html-name" contenteditable="true" data-k="${k}" data-id="${nh.id}">${nh.name}</span>
+                <button class="note-html-open open-note-html-btn" data-k="${k}" data-id="${nh.id}">Open ↗</button>
+                <button class="note-html-edit edit-note-html-btn" data-k="${k}" data-id="${nh.id}">✎</button>
+                <button class="note-html-del del-note-html-btn" data-k="${k}" data-id="${nh.id}">✕</button>
+              </div>`).join('');
+
+            const outRowsHtml=OUTPUTS.map(oi=>{
+              const on=isDone(k,oi.key);
+              const bid='cpbtn_'+s+'_'+oi.key;
+              return `<div class="out-row">
+                <div class="tick${on?' on':''}" data-k="${k}" data-o="${oi.key}">
+                  <svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="${on?'var(--green)':'#3a3b4a'}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="out-info"><div class="out-name">${oi.name}</div><div class="out-desc">${oi.desc}</div></div>
+                <span class="out-bdg" style="background:${oi.bc};color:${oi.tc}">${oi.badge}</span>
+                <button class="cp-btn" id="${bid}" data-key="${oi.key}" data-topic="${topic}" data-k="${k}" data-bid="${bid}">Copy prompt</button>
+              </div>`;
+            }).join('');
+
+            const recSlides=getSlides(k,'rec'),cliSlides=getSlides(k,'cli');
+            const edmrSlides=getSlides(k,'edmr'),edmcSlides=getSlides(k,'edmc');
+
+            detail.innerHTML=`
+              <div class="dtabs">
+                <button class="dtab${tab==='notes'?' active':''}" id="dtab_notes_${s}">📝 Notes</button>
+                <button class="dtab${tab==='slides'?' active':''}" id="dtab_slides_${s}">🖼 Slides</button>
+                <button class="dtab${tab==='prompts'?' active':''}" id="dtab_prompts_${s}">⚡ Prompts</button>
+              </div>
+              <div id="dpanel_notes_${s}" class="dpanel" style="display:${tab==='notes'?'block':'none'}">
+                <div class="notes-html-section">
+                  <div class="notes-html-hdr">
+                    <span class="notes-html-title">HTML Reference Notes${noteHtmls.length>0?` <span style="color:var(--teal);font-family:'DM Mono',monospace">${noteHtmls.length}</span>`:''}</span>
+                    <button class="add-note-html-btn" data-k="${k}">+ Add HTML note</button>
+                  </div>
+                  <div class="note-html-list">
+                    ${noteHtmls.length>0?noteHtmlRows:'<div class="note-html-empty">📄 No HTML notes yet — click "+ Add HTML note" to add one</div>'}
+                  </div>
+                </div>
+                <hr class="notes-divider">
+                <div class="notes-lbl">Written notes</div>
+                <div class="notes-sub">Paste brochure content, product specs, MAS guidelines, or any key facts. Auto-fills into your Raw data prompt.</div>
+                <textarea class="rnotes" id="ta_${s}" rows="8" placeholder="Policy coverage, premium structure, exclusions, compliance notes...">${ts(k).notes||''}</textarea>
+                <div class="save-row">
+                  <button class="save-btn" id="sb_${s}">Save notes</button>
+                  <span class="save-hint">Saves to your browser</span>
+                </div>
+                <button class="copy-raw-btn" id="cr_${s}">Copy Raw data prompt with notes ↗</button>
+              </div>
+              <div id="dpanel_slides_${s}" class="dpanel" style="display:${tab==='slides'?'block':'none'}">
+                ${buildSlideSection('rec','Education Slides','#a78bfa',recSlides)}
+                <hr class="slides-divider">
+                ${buildSlideSection('cli','Client Slides','#34c97a',cliSlides)}
+                <hr class="slides-divider">
+                ${buildSlideSection('edmr','EDM — Education','#ff6b6b',edmrSlides)}
+                <hr class="slides-divider">
+                ${buildSlideSection('edmc','EDM — Client','#ffd166',edmcSlides)}
+              </div>
+              <div id="dpanel_prompts_${s}" class="dpanel" style="display:${tab==='prompts'?'block':'none'}">
+                ${outRowsHtml}
+                <button class="copy-raw-btn" id="cr2_${s}">Copy Raw data prompt with notes ↗</button>
+              </div>
+            `;
+
+            detail.querySelector('#dtab_notes_'+s).onclick=()=>switchTab(k,'notes');
+            detail.querySelector('#dtab_slides_'+s).onclick=()=>switchTab(k,'slides');
+            detail.querySelector('#dtab_prompts_'+s).onclick=()=>switchTab(k,'prompts');
+            const sb=detail.querySelector('#sb_'+s);if(sb)sb.onclick=()=>saveNotes(k);
+            const cr=detail.querySelector('#cr_'+s);if(cr)cr.onclick=()=>copyRaw(k,topic,'cr_'+s);
+            const cr2=detail.querySelector('#cr2_'+s);if(cr2)cr2.onclick=()=>copyRaw(k,topic,'cr2_'+s);
+            detail.querySelectorAll('.add-note-html-btn').forEach(el=>el.onclick=e=>{e.stopPropagation();openPasteModal({mode:'note_html',k:el.dataset.k,itemId:null})});
+            detail.querySelectorAll('.open-note-html-btn').forEach(el=>el.onclick=e=>{e.stopPropagation();const nh=getNoteHtmls(el.dataset.k).find(x=>x.id===el.dataset.id);if(nh)openFSSingle(nh,topic+' — '+nh.name)});
+            detail.querySelectorAll('.edit-note-html-btn').forEach(el=>el.onclick=e=>{e.stopPropagation();openPasteModal({mode:'note_html',k:el.dataset.k,itemId:el.dataset.id})});
+            detail.querySelectorAll('.del-note-html-btn').forEach(el=>el.onclick=e=>{e.stopPropagation();if(confirm('Delete this HTML note?')){deleteNoteHtml(el.dataset.k,el.dataset.id);render()}});
+            detail.querySelectorAll('.note-html-name').forEach(el=>{
+              el.addEventListener('click',e=>e.stopPropagation());
+              el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.blur()}});
+              el.addEventListener('blur',()=>updateNoteHtmlName(el.dataset.k,el.dataset.id,el.textContent.trim()));
+            });
+            detail.querySelectorAll('.tick').forEach(el=>el.onclick=e=>{e.stopPropagation();toggleDone(el.dataset.k,el.dataset.o)});
+            detail.querySelectorAll('.cp-btn').forEach(el=>el.onclick=e=>{e.stopPropagation();copyP(el.dataset.key,el.dataset.topic,el.dataset.k,el.dataset.bid)});
+            detail.querySelectorAll('.add-slide-btn,.add-slide-empty').forEach(el=>el.onclick=e=>{e.stopPropagation();openPasteModal({mode:'slide',k:el.dataset.k,type:el.dataset.type,itemId:null})});
+            detail.querySelectorAll('.open-fs-btn').forEach(el=>el.onclick=e=>{
+              e.stopPropagation();
+              const type=el.dataset.type;const slides=getSlides(el.dataset.k,type);const idx=parseInt(el.dataset.idx);
+              const labels={rec:'Education Slides',cli:'Client Slides',edmr:'EDM — Education',edmc:'EDM — Client'};
+              openFS(slides,idx,topic,labels[type]||type);
+            });
+            detail.querySelectorAll('.edit-slide-btn').forEach(el=>el.onclick=e=>{e.stopPropagation();openPasteModal({mode:'slide',k:el.dataset.k,type:el.dataset.type,itemId:el.dataset.id})});
+            detail.querySelectorAll('.del-slide-btn').forEach(el=>el.onclick=e=>{e.stopPropagation();if(confirm('Delete this slide?')){deleteSlide(el.dataset.k,el.dataset.type,el.dataset.id);render()}});
+            detail.querySelectorAll('.slide-thumb-name').forEach(el=>{
+              el.addEventListener('click',e=>e.stopPropagation());
+              el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.blur()}});
+              el.addEventListener('blur',()=>updateSlideName(el.dataset.k,el.dataset.type,el.dataset.id,el.textContent.trim()));
+            });
+            wrap.appendChild(detail);
+          }
+          secWrap.appendChild(wrap);
+        });
+
+        body.appendChild(secWrap);
+      });
+
+      /* bind section header buttons */
+      body.querySelectorAll('.edit-topics-btn').forEach(el=>{
+        el.onclick=e=>{e.stopPropagation();openTM(parseInt(el.dataset.lnum),el.dataset.slabel,el.dataset.seclabel)};
+      });
+      body.querySelectorAll('.sec-lbl').forEach(el=>{
+        el.onclick=e=>{e.stopPropagation();openSN(parseInt(el.dataset.lnum),el.dataset.slabel,el.dataset.seclabel)};
+      });
+
+      block.appendChild(body);
+    }
+    con.appendChild(block);
+  });
+}
+
+
+/* ══════════════════════════════════
+   GOOGLE DRIVE SYNC
+══════════════════════════════════ */
+const DRIVE_CLIENT_ID_KEY = 'ins_drive_client_id';
+const DRIVE_FILE_NAME = 'insurance_training_data.json';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file';
+
+let driveClientId = localStorage.getItem(DRIVE_CLIENT_ID_KEY) || '';
+let driveFileId = localStorage.getItem('ins_drive_file_id') || '';
+let driveToken = null;
+let driveConnected = false;
+let driveSaveTimer = null;
+
+function setDriveUI(state, label){
+  const btn = document.getElementById('driveBtn');
+  const lbl = document.getElementById('driveBtnLabel');
+  const footer = document.getElementById('footerDriveStatus');
+  btn.className = 'drive-btn ' + (state||'');
+  if(lbl) lbl.textContent = label || 'Connect Drive';
+  if(footer){
+    if(state==='connected') { footer.textContent = '\u2601\ufe0f Drive: synced'; footer.style.color='var(--green)'; }
+    else if(state==='syncing') { footer.textContent = '\u2601\ufe0f Drive: syncing\u2026'; footer.style.color='var(--accent)'; }
+    else if(state==='error') { footer.textContent = '\u26a0\ufe0f Drive: error'; footer.style.color='var(--coral)'; }
+    else { footer.textContent = 'Drive: not connected'; footer.style.color='var(--text3)'; }
+  }
+}
+
+function openSetup(){
+  document.getElementById('clientIdInp').value = driveClientId;
+  document.getElementById('setupOverlay').classList.add('on');
+  setTimeout(function(){ document.getElementById('clientIdInp').focus(); }, 80);
+}
+function closeSetup(){ document.getElementById('setupOverlay').classList.remove('on'); }
+function saveClientId(){
+  var val = document.getElementById('clientIdInp').value.trim();
+  if(!val){ alert('Please paste your Client ID first.'); return; }
+  driveClientId = val;
+  localStorage.setItem(DRIVE_CLIENT_ID_KEY, val);
+  closeSetup();
+  initDrive();
+}
+document.getElementById('setupOverlay').addEventListener('click', function(e){ if(e.target.id==='setupOverlay') closeSetup(); });
+
+function handleDriveClick(){
+  if(!driveClientId){ openSetup(); return; }
+  if(driveConnected){
+    var choice = confirm('Click OK to force sync now, or Cancel to disconnect Drive.');
+    if(choice){
+      driveSave(true);
+    } else {
+      driveToken=null; driveConnected=false;
+      localStorage.removeItem('ins_drive_file_id');
+      driveFileId='';
+      setDriveUI('','Connect Drive');
+    }
+    return;
+  }
+  initDrive();
+}
+
+function initDrive(){
+  if(!driveClientId){ openSetup(); return; }
+  setDriveUI('syncing','Signing in\u2026');
+  try{
+    var client = google.accounts.oauth2.initTokenClient({
+      client_id: driveClientId,
+      scope: DRIVE_SCOPE,
+      callback: function(resp){
+        if(resp.error){
+          console.error('OAuth error', resp);
+          setDriveUI('error','Auth failed');
+          setTimeout(function(){ setDriveUI('','Connect Drive'); }, 3000);
+          return;
+        }
+        driveToken = resp.access_token;
+        driveConnected = true;
+        setDriveUI('syncing','Loading data\u2026');
+        driveLoad();
+      }
+    });
+    client.requestAccessToken();
+  } catch(e){
+    console.error('Drive init error', e);
+    setDriveUI('error','Setup error \u2014 check Client ID');
+    setTimeout(function(){ openSetup(); }, 1500);
+  }
+}
+
+async function findOrCreateFile(){
+  var search = await fetch(
+    'https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D%27' + encodeURIComponent(DRIVE_FILE_NAME) + '%27&fields=files(id%2Cname)',
+    {headers:{Authorization:'Bearer '+driveToken}}
+  );
+  var data = await search.json();
+  if(data.files && data.files.length > 0){
+    driveFileId = data.files[0].id;
+    localStorage.setItem('ins_drive_file_id', driveFileId);
+    return driveFileId;
+  }
+  var meta = {name: DRIVE_FILE_NAME, parents: ['appDataFolder']};
+  var create = await fetch('https://www.googleapis.com/drive/v3/files?fields=id',{
+    method:'POST',
+    headers:{Authorization:'Bearer '+driveToken,'Content-Type':'application/json'},
+    body: JSON.stringify(meta)
+  });
+  var file = await create.json();
+  driveFileId = file.id;
+  localStorage.setItem('ins_drive_file_id', driveFileId);
+  return driveFileId;
+}
+
+async function driveLoad(){
+  try{
+    var fileId = await findOrCreateFile();
+    var res = await fetch(
+      'https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media',
+      {headers:{Authorization:'Bearer '+driveToken}}
+    );
+    if(res.status === 200){
+      var text = await res.text();
+      if(text && text.trim().startsWith('{')){
+        var remote = JSON.parse(text);
+        if(remote && remote.curriculum){
+          var localCollapsed = appState.collapsed || {};
+          appState = remote;
+          appState.collapsed = localCollapsed;
+          localStorage.setItem(LS, JSON.stringify(appState));
+          render();
+        }
+      }
+    }
+    setDriveUI('connected','Drive synced \u2713');
+    await driveUpload();
+  } catch(e){
+    console.error('Drive load error', e);
+    setDriveUI('error','Sync failed');
+    setTimeout(function(){ setDriveUI('connected','Drive connected'); }, 3000);
+  }
+}
+
+async function driveUpload(){
+  if(!driveToken || !driveConnected) return;
+  try{
+    var fileId = driveFileId || await findOrCreateFile();
+    var blob = new Blob([JSON.stringify(appState)], {type:'application/json'});
+    await fetch(
+      'https://www.googleapis.com/upload/drive/v3/files/' + fileId + '?uploadType=media',
+      {method:'PATCH', headers:{Authorization:'Bearer '+driveToken,'Content-Type':'application/json'}, body:blob}
+    );
+    setDriveUI('connected','Drive synced \u2713');
+    var now = new Date().toLocaleTimeString();
+    var footer = document.getElementById('footerDriveStatus');
+    if(footer) footer.textContent = '\u2601\ufe0f Drive: synced ' + now;
+  } catch(e){
+    console.error('Drive upload error', e);
+    setDriveUI('error','Sync failed');
+    setTimeout(function(){ setDriveUI('connected','Drive connected'); }, 3000);
+  }
+}
+
+function driveSaveDebounced(){
+  clearTimeout(driveSaveTimer);
+  driveSaveTimer = setTimeout(function(){ driveUpload(); }, 2000);
+}
+
+async function driveSave(showFeedback){
+  if(!driveConnected){ if(showFeedback) alert('Drive is not connected yet.'); return; }
+  setDriveUI('syncing','Syncing\u2026');
+  await driveUpload();
+}
+
+window.addEventListener('load', function(){
+  if(driveClientId){
+    setTimeout(function(){
+      try{
+        var client = google.accounts.oauth2.initTokenClient({
+          client_id: driveClientId,
+          scope: DRIVE_SCOPE,
+          prompt: 'none',
+          callback: function(resp){
+            if(resp.error){ setDriveUI('','Connect Drive'); return; }
+            driveToken = resp.access_token;
+            driveConnected = true;
+            setDriveUI('syncing','Loading\u2026');
+            driveLoad();
+          }
+        });
+        client.requestAccessToken();
+      } catch(e){ setDriveUI('','Connect Drive'); }
+    }, 1500);
+  }
+});
+
+render();
+</script>
+</body>
+</html>
