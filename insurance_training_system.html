@@ -517,6 +517,26 @@ textarea.paste-ta:focus{outline:none;border-color:var(--accent);}
   </div>
 </div>
 
+<!-- PROMPT MANAGER MODAL -->
+<div class="modal-overlay" id="pmOverlay">
+  <div class="tm-modal">
+    <div class="tm-hdr">
+      <div class="tm-title" id="pmTitle">Edit Prompts</div>
+      <div class="tm-sub">Add new prompts · Click name to rename custom ones · Delete any</div>
+    </div>
+    <div class="tm-body" id="pmBody"></div>
+    <div class="tm-footer">
+      <div class="tm-add-row">
+        <input class="tm-add-inp" id="pmAddInp" placeholder="New prompt name…" maxlength="80">
+        <button class="tm-add-btn" onclick="pmAddPrompt()">+ Add</button>
+      </div>
+      <div style="margin-top:10px">
+        <button class="tm-close-btn" onclick="closePM()">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- SECTION NOTES MODAL -->
 <div class="modal-overlay" id="snOverlay">
   <div class="sn-modal">
@@ -724,7 +744,7 @@ let openTopic=null,tabState={};
 function toggleTopic(k){openTopic=openTopic===k?null:k;if(openTopic===k&&!tabState[k])tabState[k]='notes';render()}
 function switchTab(k,tab){
   tabState[k]=tab;const s=sid(k);
-  ['notes','slides'].forEach(t=>{
+  ['notes','slides','prompts'].forEach(t=>{
     const tb=document.getElementById('dtab_'+t+'_'+s);
     const pn=document.getElementById('dpanel_'+t+'_'+s);
     if(tb)tb.classList.toggle('active',t===tab);
@@ -1096,26 +1116,30 @@ function render(){
                 <button class="note-html-del del-note-html-btn" data-k="${k}" data-id="${nh.id}">✕</button>
               </div>`).join('');
 
-            const outRowsHtml=OUTPUTS.map(oi=>{
-              const pid='pr_'+s+'_'+oi.key;
-              const ptid='pta_'+s+'_'+oi.key;
-              const promptText=getPromptText(k,oi.key,topic).replace(/`/g,'\`');
-              return `<div class="prompt-row" id="${pid}">
-                <div class="prompt-row-hdr" data-pid="${pid}">
-                  <span class="prompt-row-name">${oi.name}</span>
-                  <span class="prompt-row-badge" style="background:${oi.bc};color:${oi.tc}">${oi.badge}</span>
-                  <span class="prompt-row-chev">▾</span>
-                </div>
-                <div class="prompt-body" style="display:none">
-                  <textarea class="prompt-ta" id="${ptid}" rows="12">${getPromptText(k,oi.key,topic).replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
-                  <div class="prompt-actions">
-                    <button class="prompt-save-btn" data-k="${k}" data-okey="${oi.key}" data-ptid="${ptid}">Save</button>
-                    <button class="prompt-copy-btn" data-ptid="${ptid}">Copy prompt ↗</button>
-                    <span class="prompt-hint">Edits save to this topic only</span>
+            const allPrompts=getTopicPrompts(k);
+            const deletedPrompts=(ts(k).deletedPrompts)||[];
+            const outRowsHtml=allPrompts
+              .filter(p=>!deletedPrompts.includes(p.key))
+              .map((p,i)=>{
+                const pid='pr_'+s+'_'+i;
+                const ptid='pta_'+s+'_'+i;
+                const ptext=p.isDefault?getPromptText(k,p.key,topic):(ts(k).customPrompts&&ts(k).customPrompts[p.key])||p.text||'';
+                return `<div class="prompt-row" id="${pid}">
+                  <div class="prompt-row-hdr" data-pid="${pid}">
+                    <span class="prompt-row-name">${p.name}</span>
+                    <span class="prompt-row-badge" style="background:${p.bc||'rgba(152,153,168,0.12)'};color:${p.tc||'#9899a8'}">${p.badge||'Custom'}</span>
+                    <span class="prompt-row-chev">▾</span>
                   </div>
-                </div>
-              </div>`;
-            }).join('');
+                  <div class="prompt-body" style="display:none">
+                    <textarea class="prompt-ta" id="${ptid}" rows="12">${ptext.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+                    <div class="prompt-actions">
+                      <button class="prompt-save-btn" data-k="${k}" data-okey="${p.key}" data-ptid="${ptid}">Save</button>
+                      <button class="prompt-copy-btn" data-ptid="${ptid}">Copy prompt ↗</button>
+                      <span class="prompt-hint">Edits save to this topic only</span>
+                    </div>
+                  </div>
+                </div>`;
+              }).join('');
 
             const recSlides=getSlides(k,'rec'),cliSlides=getSlides(k,'cli');
             const edmrSlides=getSlides(k,'edmr'),edmcSlides=getSlides(k,'edmc');
@@ -1156,7 +1180,10 @@ function render(){
                 ${buildSlideSection('edmc','EDM — Client','#ffd166',edmcSlides)}
               </div>
               <div id="dpanel_prompts_${s}" class="dpanel" style="display:${tab==='prompts'?'block':'none'}">
-                <div class="prompts-section-title">⚡ Prompts — click to edit &amp; copy</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                  <span class="prompts-section-title" style="margin-bottom:0">⚡ Click a prompt to edit &amp; copy</span>
+                  <button class="pm-edit-btn" style="font-size:10px;font-weight:500;padding:3px 10px;border:1px solid var(--border2);border-radius:5px;background:var(--bg3);color:var(--text3);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;" data-k="${k}" data-topic="${topic}">✎ Edit</button>
+                </div>
                 ${outRowsHtml}
               </div>
             `;
@@ -1177,19 +1204,17 @@ function render(){
             });
             /* prompt row expand/collapse */
             detail.querySelectorAll('.prompt-row-hdr').forEach(el=>{
-              el.onclick=()=>{
-                const row=document.getElementById(el.dataset.pid);
+              el.onclick=e=>{
+                e.stopPropagation();
+                const row=el.closest('.prompt-row');
+                if(!row)return;
                 const body=row.querySelector('.prompt-body');
+                if(!body)return;
                 const isOpen=body.style.display!=='none';
                 body.style.display=isOpen?'none':'block';
                 row.classList.toggle('open',!isOpen);
-                if(!isOpen){
-                  // refresh textarea with latest saved prompt
-                  const ptid=body.querySelector('.prompt-ta').id;
-                  const okey=ptid.split('_').pop();
-                  const ta=body.querySelector('.prompt-ta');
-                  ta.value=getPromptText(k,okey,topic);
-                }
+                const chev=el.querySelector('.prompt-row-chev');
+                if(chev)chev.style.transform=isOpen?'':'rotate(180deg)';
               };
             });
             /* prompt save */
@@ -1216,6 +1241,7 @@ function render(){
               };
             });
             detail.querySelectorAll('.add-slide-btn,.add-slide-empty').forEach(el=>el.onclick=e=>{e.stopPropagation();openPasteModal({mode:'slide',k:el.dataset.k,type:el.dataset.type,itemId:null})});
+            detail.querySelectorAll('.pm-edit-btn').forEach(el=>el.onclick=e=>{e.stopPropagation();openPM(el.dataset.k,el.dataset.topic)});
             detail.querySelectorAll('.open-fs-btn').forEach(el=>el.onclick=e=>{
               e.stopPropagation();
               const type=el.dataset.type;const slides=getSlides(el.dataset.k,type);const idx=parseInt(el.dataset.idx);
@@ -1444,6 +1470,120 @@ window.addEventListener('load', function(){
     }, 1500);
   }
 });
+
+
+/* ══════════════════════════════════
+   PROMPT MANAGER
+══════════════════════════════════ */
+let pmCtx=null, pmConfirming={};
+
+function getTopicPrompts(k){
+  ensureTopic(k);
+  // merge defaults with any custom additions
+  const base = OUTPUTS.map(o=>({key:o.key, name:o.name, badge:o.badge, bc:o.bc, tc:o.tc, isDefault:true}));
+  const extras = (appState.topics[k].extraPrompts)||[];
+  return [...base, ...extras];
+}
+
+function ensureExtraPrompts(k){
+  ensureTopic(k);
+  if(!appState.topics[k].extraPrompts) appState.topics[k].extraPrompts=[];
+}
+
+function openPM(k, topicName){
+  pmCtx={k, topicName};
+  pmConfirming={};
+  document.getElementById('pmTitle').textContent='Edit Prompts — '+topicName;
+  document.getElementById('pmAddInp').value='';
+  renderPM();
+  document.getElementById('pmOverlay').classList.add('on');
+}
+function closePM(){
+  document.getElementById('pmOverlay').classList.remove('on');
+  pmCtx=null; pmConfirming={};
+  render();
+}
+function renderPM(){
+  if(!pmCtx)return;
+  const {k}=pmCtx;
+  const prompts=getTopicPrompts(k);
+  const body=document.getElementById('pmBody');
+  body.innerHTML='';
+
+  prompts.forEach((p,idx)=>{
+    const item=document.createElement('div');
+    if(pmConfirming[idx]){
+      item.className='tm-item confirming';
+      item.innerHTML=`
+        <span class="tm-confirm-msg">Delete "<strong>${p.name}</strong>"?</span>
+        <button class="tm-confirm-yes" data-idx="${idx}">Yes, delete</button>
+        <button class="tm-confirm-no" data-idx="${idx}">Cancel</button>
+      `;
+      item.querySelector('.tm-confirm-yes').onclick=()=>{
+        if(p.isDefault){
+          // mark default as deleted
+          ensureTopic(k);
+          if(!appState.topics[k].deletedPrompts) appState.topics[k].deletedPrompts=[];
+          appState.topics[k].deletedPrompts.push(p.key);
+        } else {
+          ensureExtraPrompts(k);
+          appState.topics[k].extraPrompts=appState.topics[k].extraPrompts.filter((_,i)=>i!==idx-OUTPUTS.length);
+        }
+        delete pmConfirming[idx];
+        saveState();
+        renderPM();
+        render();
+      };
+      item.querySelector('.tm-confirm-no').onclick=()=>{
+        delete pmConfirming[idx]; renderPM();
+      };
+    } else {
+      item.className='tm-item';
+      const isEditable=!p.isDefault;
+      item.innerHTML=`
+        <input class="tm-item-name" value="${p.name.replace(/"/g,'&quot;')}"
+          data-idx="${idx}" ${p.isDefault?'readonly':''} spellcheck="false"
+          style="${p.isDefault?'color:var(--text3);cursor:default;':''}"
+          title="${p.isDefault?'Default prompt — name cannot be changed':'Click to rename'}">
+        <button class="tm-item-del" data-idx="${idx}" title="Delete">✕</button>
+      `;
+      const inp=item.querySelector('.tm-item-name');
+      if(!p.isDefault){
+        inp.onblur=()=>{
+          const newName=inp.value.trim();
+          if(newName&&newName!==p.name){
+            ensureExtraPrompts(k);
+            const extraIdx=idx-OUTPUTS.length;
+            if(appState.topics[k].extraPrompts[extraIdx])
+              appState.topics[k].extraPrompts[extraIdx].name=newName;
+            saveState();render();
+          }
+        };
+        inp.onkeydown=e=>{if(e.key==='Enter')inp.blur()};
+      }
+      item.querySelector('.tm-item-del').onclick=()=>{
+        pmConfirming[idx]=true; renderPM();
+      };
+    }
+    body.appendChild(item);
+  });
+
+  if(prompts.length===0){
+    body.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">No prompts yet.</div>';
+  }
+}
+function pmAddPrompt(){
+  if(!pmCtx)return;
+  const inp=document.getElementById('pmAddInp');
+  const name=inp.value.trim(); if(!name)return;
+  const {k}=pmCtx;
+  ensureExtraPrompts(k);
+  appState.topics[k].extraPrompts.push({key:'custom_'+genId(),name,text:''});
+  inp.value='';
+  saveState();render();renderPM();
+}
+document.getElementById('pmAddInp').onkeydown=e=>{if(e.key==='Enter')pmAddPrompt()};
+document.getElementById('pmOverlay').addEventListener('click',e=>{if(e.target.id==='pmOverlay')closePM()});
 
 render();
 </script>
