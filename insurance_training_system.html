@@ -1860,11 +1860,12 @@ function renderLM(){
 
         sections.forEach((sec,si)=>{
           const secRow=document.createElement('div');
-          secRow.style.cssText='display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);';
+          secRow.style.cssText='display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);flex-wrap:wrap;';
           secRow.innerHTML=`
-            <span style="flex:1;font-size:12px;font-weight:500;color:var(--text2);">${sec.label}</span>
+            <span style="flex:1;font-size:12px;font-weight:500;color:var(--text2);min-width:80px;">${sec.label}</span>
             <button class="lm-arrow-btn sec-up" data-lidx="${idx}" data-sidx="${si}" ${si===0?'disabled':''} title="Move up">↑</button>
             <button class="lm-arrow-btn sec-down" data-lidx="${idx}" data-sidx="${si}" ${si===sections.length-1?'disabled':''} title="Move down">↓</button>
+            <button class="lm-item-del sec-del" data-lidx="${idx}" data-sidx="${si}" title="Delete section">✕</button>
           `;
           secRow.querySelector('.sec-up').onclick=()=>{
             const li=parseInt(secRow.querySelector('.sec-up').dataset.lidx);
@@ -1883,6 +1884,23 @@ function renderLM(){
               [appState.curriculum[li].sections[si2+1],appState.curriculum[li].sections[si2]];
               saveState();render();renderLM();
             }
+          };
+          secRow.querySelector('.sec-del').onclick=()=>{
+            const li=parseInt(secRow.querySelector('.sec-del').dataset.lidx);
+            const si2=parseInt(secRow.querySelector('.sec-del').dataset.sidx);
+            // show confirm inline
+            secRow.style.borderColor='var(--coral)';
+            secRow.style.background='rgba(255,107,107,.05)';
+            secRow.innerHTML=`
+              <span style="flex:1;font-size:11px;color:var(--coral);">Delete "<strong>${sec.label}</strong>" and all its topics?</span>
+              <button class="lm-confirm-yes sec-del-yes" data-li="${li}" data-si="${si2}">Yes, delete</button>
+              <button class="lm-confirm-no sec-del-no">Cancel</button>
+            `;
+            secRow.querySelector('.sec-del-yes').onclick=()=>{
+              appState.curriculum[li].sections.splice(si2,1);
+              saveState();render();renderLM();
+            };
+            secRow.querySelector('.sec-del-no').onclick=()=>renderLM();
           };
           accordion.appendChild(secRow);
         });
