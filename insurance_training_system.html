@@ -81,11 +81,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 .main{max-width:980px;margin:0 auto;padding:28px 20px 80px;}
 
-/* STATS */
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px;}
-.sc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:16px 18px;text-align:center;}
-.sc-n{font-family:'Syne',sans-serif;font-size:28px;font-weight:700;letter-spacing:-1px;}
-.sc-l{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-top:3px;}
+
 
 /* LEGEND */
 .legend{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:20px;font-size:12px;color:var(--text2);}
@@ -415,7 +411,6 @@ textarea.paste-ta:focus{outline:none;border-color:var(--accent);}
 </div>
 
 <div class="main">
-  <div class="stats" id="statsRow"></div>
   <div class="legend">
     <span class="leg-item"><span class="leg-dot-n" style="background:var(--teal)"></span><span class="leg-num" style="color:var(--teal)">N</span> = HTML notes uploaded</span>
     <span class="leg-sep">·</span>
@@ -933,12 +928,7 @@ function copyP(okey,topic,k,bid){
    RENDER
 ══════════════════════════════════ */
 function render(){
-  document.getElementById('statsRow').innerHTML=`
-    <div class="sc"><div class="sc-n">${totalT()}</div><div class="sc-l">Topics</div></div>
-    <div class="sc"><div class="sc-n" style="color:var(--green)">${doneT()}</div><div class="sc-l">Fully done</div></div>
-    <div class="sc"><div class="sc-n" style="color:var(--accent)">${doneO()}</div><div class="sc-l">Outputs done</div></div>
-    <div class="sc"><div class="sc-n" style="color:var(--purple)">${totalSlidesAll()}</div><div class="sc-l">Slides stored</div></div>
-  `;
+
 
   const con=document.getElementById('levelsContainer');
   con.innerHTML='';
