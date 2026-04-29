@@ -175,6 +175,50 @@ textarea.rnotes::placeholder{color:var(--text3);}
 .save-btn.saved{color:var(--green);border-color:var(--green-bd);background:var(--green-bg);}
 .save-hint{font-size:11px;color:var(--text3);}
 
+
+/* PROMPTS IN NOTES TAB */
+.prompts-section{margin-top:20px;}
+.prompts-section-title{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.prompt-row{margin-bottom:6px;border:1px solid var(--border2);border-radius:var(--r);overflow:hidden;background:var(--bg2);}
+.prompt-row-hdr{
+  display:flex;align-items:center;gap:12px;padding:11px 14px;
+  cursor:pointer;user-select:none;transition:background .15s;
+}
+.prompt-row-hdr:hover{background:var(--bg3);}
+.prompt-row.open .prompt-row-hdr{background:var(--bg3);}
+.prompt-row-name{font-size:13px;font-weight:500;color:var(--text);flex:1;}
+.prompt-row-badge{font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px;font-family:'DM Mono',monospace;flex-shrink:0;}
+.prompt-row-chev{font-size:10px;color:var(--text3);transition:transform .2s;flex-shrink:0;}
+.prompt-row.open .prompt-row-chev{transform:rotate(180deg);}
+.prompt-body{border-top:1px solid var(--border);padding:14px;}
+textarea.prompt-ta{
+  width:100%;padding:12px 14px;font-size:12px;
+  font-family:'DM Mono',monospace;line-height:1.7;
+  background:var(--bg);color:var(--text);
+  border:1px solid var(--border2);border-radius:var(--r);
+  resize:vertical;min-height:200px;display:block;
+  transition:border-color .15s;
+}
+textarea.prompt-ta:focus{outline:none;border-color:var(--accent);}
+.prompt-actions{display:flex;gap:8px;margin-top:10px;align-items:center;}
+.prompt-save-btn{
+  padding:7px 18px;font-size:12px;font-weight:500;
+  border:1px solid var(--border2);border-radius:var(--r);
+  background:var(--bg4);color:var(--text2);
+  cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;
+}
+.prompt-save-btn:hover{background:var(--bg3);border-color:var(--border3);color:var(--text);}
+.prompt-save-btn.saved{color:var(--green);border-color:var(--green-bd);background:var(--green-bg);}
+.prompt-copy-btn{
+  padding:7px 18px;font-size:12px;font-weight:500;
+  border:1px solid var(--accent);border-radius:var(--r);
+  background:rgba(79,124,255,.08);color:var(--accent);
+  cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;
+}
+.prompt-copy-btn:hover{background:rgba(79,124,255,.18);}
+.prompt-copy-btn.copied{color:var(--green);border-color:var(--green-bd);background:var(--green-bg);}
+.prompt-hint{font-size:11px;color:var(--text3);margin-left:4px;}
+
 /* SLIDES TAB */
 .slides-section{margin-bottom:20px;}
 .slides-section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
@@ -577,6 +621,19 @@ function ensureTopic(k){
   if(!t.notes_html)t.notes_html=[];
   if(!t.slides)t.slides={rec:[],cli:[],edmr:[],edmc:[]};
   ['rec','cli','edmr','edmc'].forEach(x=>{if(!t.slides[x])t.slides[x]=[]});
+  if(!t.customPrompts)t.customPrompts={};
+}
+function getPromptText(k,okey,topic){
+  ensureTopic(k);
+  const custom=appState.topics[k].customPrompts[okey];
+  if(custom)return custom;
+  const n=ts(k).notes||null;
+  return okey==='raw'?PROMPTS.raw(topic,n):PROMPTS[okey](topic);
+}
+function saveCustomPrompt(k,okey,text){
+  ensureTopic(k);
+  appState.topics[k].customPrompts[okey]=text;
+  saveState();
 }
 function ensureSN(lnum,slabel){
   const k=snKey(lnum,slabel);
@@ -667,7 +724,7 @@ let openTopic=null,tabState={};
 function toggleTopic(k){openTopic=openTopic===k?null:k;if(openTopic===k&&!tabState[k])tabState[k]='notes';render()}
 function switchTab(k,tab){
   tabState[k]=tab;const s=sid(k);
-  ['notes','slides','prompts'].forEach(t=>{
+  ['notes','slides'].forEach(t=>{
     const tb=document.getElementById('dtab_'+t+'_'+s);
     const pn=document.getElementById('dpanel_'+t+'_'+s);
     if(tb)tb.classList.toggle('active',t===tab);
@@ -1040,15 +1097,23 @@ function render(){
               </div>`).join('');
 
             const outRowsHtml=OUTPUTS.map(oi=>{
-              const on=isDone(k,oi.key);
-              const bid='cpbtn_'+s+'_'+oi.key;
-              return `<div class="out-row">
-                <div class="tick${on?' on':''}" data-k="${k}" data-o="${oi.key}">
-                  <svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="${on?'var(--green)':'#3a3b4a'}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              const pid='pr_'+s+'_'+oi.key;
+              const ptid='pta_'+s+'_'+oi.key;
+              const promptText=getPromptText(k,oi.key,topic).replace(/`/g,'\`');
+              return `<div class="prompt-row" id="${pid}">
+                <div class="prompt-row-hdr" data-pid="${pid}">
+                  <span class="prompt-row-name">${oi.name}</span>
+                  <span class="prompt-row-badge" style="background:${oi.bc};color:${oi.tc}">${oi.badge}</span>
+                  <span class="prompt-row-chev">▾</span>
                 </div>
-                <div class="out-info"><div class="out-name">${oi.name}</div><div class="out-desc">${oi.desc}</div></div>
-                <span class="out-bdg" style="background:${oi.bc};color:${oi.tc}">${oi.badge}</span>
-                <button class="cp-btn" id="${bid}" data-key="${oi.key}" data-topic="${topic}" data-k="${k}" data-bid="${bid}">Copy prompt</button>
+                <div class="prompt-body" style="display:none">
+                  <textarea class="prompt-ta" id="${ptid}" rows="12">${getPromptText(k,oi.key,topic).replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+                  <div class="prompt-actions">
+                    <button class="prompt-save-btn" data-k="${k}" data-okey="${oi.key}" data-ptid="${ptid}">Save</button>
+                    <button class="prompt-copy-btn" data-ptid="${ptid}">Copy prompt ↗</button>
+                    <span class="prompt-hint">Edits save to this topic only</span>
+                  </div>
+                </div>
               </div>`;
             }).join('');
 
@@ -1091,8 +1156,8 @@ function render(){
                 ${buildSlideSection('edmc','EDM — Client','#ffd166',edmcSlides)}
               </div>
               <div id="dpanel_prompts_${s}" class="dpanel" style="display:${tab==='prompts'?'block':'none'}">
+                <div class="prompts-section-title">⚡ Prompts — click to edit &amp; copy</div>
                 ${outRowsHtml}
-                <button class="copy-raw-btn" id="cr2_${s}">Copy Raw data prompt with notes ↗</button>
               </div>
             `;
 
@@ -1101,7 +1166,6 @@ function render(){
             detail.querySelector('#dtab_prompts_'+s).onclick=()=>switchTab(k,'prompts');
             const sb=detail.querySelector('#sb_'+s);if(sb)sb.onclick=()=>saveNotes(k);
             const cr=detail.querySelector('#cr_'+s);if(cr)cr.onclick=()=>copyRaw(k,topic,'cr_'+s);
-            const cr2=detail.querySelector('#cr2_'+s);if(cr2)cr2.onclick=()=>copyRaw(k,topic,'cr2_'+s);
             detail.querySelectorAll('.add-note-html-btn').forEach(el=>el.onclick=e=>{e.stopPropagation();openPasteModal({mode:'note_html',k:el.dataset.k,itemId:null})});
             detail.querySelectorAll('.open-note-html-btn').forEach(el=>el.onclick=e=>{e.stopPropagation();const nh=getNoteHtmls(el.dataset.k).find(x=>x.id===el.dataset.id);if(nh)openFSSingle(nh,topic+' — '+nh.name)});
             detail.querySelectorAll('.edit-note-html-btn').forEach(el=>el.onclick=e=>{e.stopPropagation();openPasteModal({mode:'note_html',k:el.dataset.k,itemId:el.dataset.id})});
@@ -1111,8 +1175,46 @@ function render(){
               el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.blur()}});
               el.addEventListener('blur',()=>updateNoteHtmlName(el.dataset.k,el.dataset.id,el.textContent.trim()));
             });
-            detail.querySelectorAll('.tick').forEach(el=>el.onclick=e=>{e.stopPropagation();toggleDone(el.dataset.k,el.dataset.o)});
-            detail.querySelectorAll('.cp-btn').forEach(el=>el.onclick=e=>{e.stopPropagation();copyP(el.dataset.key,el.dataset.topic,el.dataset.k,el.dataset.bid)});
+            /* prompt row expand/collapse */
+            detail.querySelectorAll('.prompt-row-hdr').forEach(el=>{
+              el.onclick=()=>{
+                const row=document.getElementById(el.dataset.pid);
+                const body=row.querySelector('.prompt-body');
+                const isOpen=body.style.display!=='none';
+                body.style.display=isOpen?'none':'block';
+                row.classList.toggle('open',!isOpen);
+                if(!isOpen){
+                  // refresh textarea with latest saved prompt
+                  const ptid=body.querySelector('.prompt-ta').id;
+                  const okey=ptid.split('_').pop();
+                  const ta=body.querySelector('.prompt-ta');
+                  ta.value=getPromptText(k,okey,topic);
+                }
+              };
+            });
+            /* prompt save */
+            detail.querySelectorAll('.prompt-save-btn').forEach(el=>{
+              el.onclick=e=>{
+                e.stopPropagation();
+                const ta=document.getElementById(el.dataset.ptid);
+                if(!ta)return;
+                saveCustomPrompt(el.dataset.k,el.dataset.okey,ta.value);
+                el.textContent='Saved ✓';el.classList.add('saved');
+                setTimeout(()=>{el.textContent='Save';el.classList.remove('saved');},2000);
+              };
+            });
+            /* prompt copy */
+            detail.querySelectorAll('.prompt-copy-btn').forEach(el=>{
+              el.onclick=e=>{
+                e.stopPropagation();
+                const ta=document.getElementById(el.dataset.ptid);
+                if(!ta)return;
+                navigator.clipboard.writeText(ta.value).then(()=>{
+                  el.textContent='Copied!';el.classList.add('copied');
+                  setTimeout(()=>{el.textContent='Copy prompt ↗';el.classList.remove('copied');},2000);
+                });
+              };
+            });
             detail.querySelectorAll('.add-slide-btn,.add-slide-empty').forEach(el=>el.onclick=e=>{e.stopPropagation();openPasteModal({mode:'slide',k:el.dataset.k,type:el.dataset.type,itemId:null})});
             detail.querySelectorAll('.open-fs-btn').forEach(el=>el.onclick=e=>{
               e.stopPropagation();
