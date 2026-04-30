@@ -20,7 +20,6 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;}
 
-
 /* DRIVE SYNC */
 .drive-bar{display:flex;align-items:center;gap:10px;flex-shrink:0;}
 .drive-btn{
@@ -80,8 +79,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .undo-btn:hover{background:rgba(245,166,35,0.2);}
 
 .main{max-width:980px;margin:0 auto;padding:28px 20px 80px;}
-
-
 
 /* LEGEND */
 .legend{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:20px;font-size:12px;color:var(--text2);}
@@ -175,7 +172,6 @@ textarea.rnotes::placeholder{color:var(--text3);}
 .save-btn.saved{color:var(--green);border-color:var(--green-bd);background:var(--green-bg);}
 .save-hint{font-size:11px;color:var(--text3);}
 
-
 /* PROMPTS IN NOTES TAB */
 .prompts-section{margin-top:20px;}
 .prompts-section-title{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
@@ -250,17 +246,9 @@ textarea.prompt-ta:focus{outline:none;border-color:var(--accent);}
 /* PROMPTS */
 .out-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
 .out-row:last-child{border-bottom:none;}
-.tick{width:24px;height:24px;border-radius:50%;border:1px solid var(--border2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--bg4);transition:all .15s;}
-.tick:hover{border-color:var(--green-bd);}
-.tick.on{background:var(--green-bg);border-color:var(--green-bd);}
-.tick svg{width:12px;height:12px;}
-.out-info{flex:1;min-width:0;}
-.out-name{font-size:13px;font-weight:500;color:var(--text);}
-.out-desc{font-size:11px;color:var(--text3);margin-top:2px;}
-.out-bdg{font-size:10px;font-weight:500;padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0;font-family:'DM Mono',monospace;}
-.cp-btn{font-size:11px;font-weight:500;padding:6px 13px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg4);color:var(--text2);cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s;font-family:'DM Sans',sans-serif;}
-.cp-btn:hover{border-color:var(--border3);color:var(--text);background:var(--bg);}
-.cp-btn.copied{color:var(--green);border-color:var(--green-bd);background:var(--green-bg);}
+
+
+
 .copy-raw-btn{display:block;width:100%;margin-top:12px;padding:10px;font-size:12px;font-weight:500;border:1px solid var(--accent);border-radius:var(--r);background:rgba(79,124,255,.08);color:var(--accent);cursor:pointer;text-align:center;transition:all .15s;font-family:'DM Sans',sans-serif;}
 .copy-raw-btn:hover{background:rgba(79,124,255,.15);}
 .copy-raw-btn.copied{color:var(--green);border-color:var(--green-bd);background:var(--green-bg);}
@@ -278,7 +266,6 @@ textarea.prompt-ta:focus{outline:none;border-color:var(--accent);}
 .fs-close{padding:6px 16px;font-size:12px;font-weight:500;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg3);color:var(--text2);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;flex-shrink:0;}
 .fs-close:hover{border-color:var(--border3);color:var(--text);}
 .fs-frame{flex:1;border:none;background:#fff;width:100%;}
-
 
 /* ── LEVEL MANAGER MODAL ── */
 .lm-modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);width:92%;max-width:580px;padding:0;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;}
@@ -335,6 +322,7 @@ textarea.prompt-ta:focus{outline:none;border-color:var(--accent);}
 .modal-overlay.on{opacity:1;pointer-events:all;}
 
 /* PASTE MODAL */
+#pasteOverlay{z-index:1100!important;}
 .paste-modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);width:92%;max-width:700px;padding:26px;max-height:90vh;overflow-y:auto;}
 .paste-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:600;margin-bottom:4px;}
 .paste-sub{font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6;}
@@ -357,7 +345,6 @@ textarea.paste-ta:focus{outline:none;border-color:var(--accent);}
 .tm-sub{font-size:11px;color:var(--text3);}
 .tm-body{flex:1;overflow-y:auto;padding:16px 24px;}
 .tm-footer{padding:14px 24px;border-top:1px solid var(--border);flex-shrink:0;}
-
 
 /* Section name editor in TM modal */
 .tm-section-name-row{
@@ -826,11 +813,6 @@ function flashSave(){const el=document.getElementById('savePill');el.classList.a
 /* ══════════════════════════════════
    STATS
 ══════════════════════════════════ */
-function allKeys(){const r=[];getCurr().forEach(l=>l.sections.forEach(s=>s.topics.forEach(t=>r.push(ks(l.num,s.label,t)))));return r}
-function totalT(){return allKeys().length}
-function doneT(){return allKeys().filter(k=>{const d=ts(k).done||{};return OKEYS.every(o=>d[o])}).length}
-function doneO(){let n=0;allKeys().forEach(k=>{const d=ts(k).done||{};OKEYS.forEach(o=>{if(d[o])n++})});return n}
-function totalSlidesAll(){let n=0;allKeys().forEach(k=>n+=totalSlideCount(k));return n}
 
 /* ══════════════════════════════════
    UI STATE
@@ -1143,20 +1125,12 @@ function copyRaw(k,topic,btnId){
     if(btn){btn.textContent='Copied!';btn.classList.add('copied');setTimeout(()=>{btn.textContent='Copy Raw data prompt with notes ↗';btn.classList.remove('copied')},2000)}
   });
 }
-function copyP(okey,topic,k,bid){
-  const n=ts(k).notes||null;
-  const txt=okey==='raw'?PROMPTS.raw(topic,n):PROMPTS[okey](topic);
-  navigator.clipboard.writeText(txt).then(()=>{
-    const btn=document.getElementById(bid);
-    if(btn){btn.textContent='Copied!';btn.classList.add('copied');setTimeout(()=>{btn.textContent='Copy prompt';btn.classList.remove('copied')},2000)}
-  });
-}
+
 
 /* ══════════════════════════════════
    RENDER
 ══════════════════════════════════ */
 function render(){
-
 
   const con=document.getElementById('levelsContainer');
   con.innerHTML='';
@@ -1428,7 +1402,6 @@ function render(){
   });
 }
 
-
 /* ══════════════════════════════════
    GOOGLE DRIVE SYNC
 ══════════════════════════════════ */
@@ -1622,7 +1595,6 @@ window.addEventListener('load', function(){
   }
 });
 
-
 /* ══════════════════════════════════
    PROMPT MANAGER
 ══════════════════════════════════ */
@@ -1735,7 +1707,6 @@ function pmAddPrompt(){
 }
 document.getElementById('pmAddInp').onkeydown=e=>{if(e.key==='Enter')pmAddPrompt()};
 document.getElementById('pmOverlay').addEventListener('click',e=>{if(e.target.id==='pmOverlay')closePM()});
-
 
 /* ══════════════════════════════════
    LEVEL MANAGER
@@ -1925,7 +1896,6 @@ function renderLM(){
         item.appendChild(accordion);
       }
 
-      // section management now handled by accordion above
     }
     body.appendChild(item);
   });
